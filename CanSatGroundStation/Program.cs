@@ -1,171 +1,202 @@
+using System.Buffers;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Threading;
+using System.Buffers.Text;
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Threading.Channels;
-using System.Threading.Tasks;
 using _3DKalman;
 using MathNet.Numerics.LinearAlgebra;
 
 namespace CanSatGroundStation;
 
+public readonly record struct TelemetryPacket(DateTime TimestampUtc, byte[] Data);
+
 /// <summary>
 /// Telemetry collection class.
 /// </summary>
-public class TelemetryEngine {
-    private readonly IPAddress LocalEthIp;
-    private readonly IPAddress MulticastGroup;
-    private readonly int Port;
-    private readonly string LogFilePath;
-    private readonly Channel<byte[]> DataChannel;
+public sealed class TelemetryEngine(string localIp, string multicastGroup, int port, string logPath)
+    : IDisposable
+{
+    private const string Header = "SystemTimestamp,TimeSinceStart,GPSTimeUTC,GPSFix,SatelliteCount,Latitude,Longitude,GPSAltitude,AltitudeBarometer,Temperature,Pressure,Humidity,AccelerationX,AccelerationY,AccelerationZ,RSSI,SNR";
+
+    private readonly IPAddress _localIp = IPAddress.Parse(localIp);
+    private readonly IPAddress _group = IPAddress.Parse(multicastGroup);
+
+    private readonly BlockingCollection<TelemetryPacket> _logQueue =
+        new(new ConcurrentQueue<TelemetryPacket>());
+
+    private readonly Lock _subLock = new();
+    private ImmutableArray<ChannelWriter<TelemetryPacket>> _subscribers = [];
+
+    private readonly CancellationTokenSource _cts = new();
+    private readonly byte[] _tsBuf = new byte[40];
+    private Thread? _listener;
+    private Thread? _logger;
 
     /// <summary>
-    /// Collects telemetry from multicast group in form of UDP packets.
+    /// Live feed for UI / processing. Each subscriber gets its own bounded channel,
+    /// so a slow consumer only loses its own old packets and can never affect logging.
     /// </summary>
-    /// <param name="localIp">Interface IP Address the listener is bound to.</param>
-    /// <param name="multicastGroup">Multicast group IP Address to listen to.</param>
-    /// <param name="port">Interface port to listen through.</param>
-    /// <param name="logPath">Path to the log file.</param>
-    public TelemetryEngine(string localIp, string multicastGroup, int port, string logPath)
+    public ChannelReader<TelemetryPacket> Subscribe(int capacity = 1000)
     {
-        LocalEthIp = localIp;
-        MulticastGroup = multicastGroup;
-        Port = port;
-        LogFilePath = logPath;
-
-        DataChannel = Channel.CreateUnbounded<byte[]>(new UnboundedChannelOptions
+        var ch = Channel.CreateBounded<TelemetryPacket>(new BoundedChannelOptions(capacity)
         {
-            SingleWriter = true,
-            SingleReader = true
+            FullMode = BoundedChannelFullMode.DropOldest,
+            SingleReader = true,
+            SingleWriter = true
         });
+        lock (_subLock) _subscribers = _subscribers.Add(ch.Writer);
+        return ch.Reader;
     }
 
-    /// <summary>
-    /// Starts the worker thread.
-    /// </summary>
-    public void Start() {
-        // 1. Dedicated network thread (LongRunning ensures a fresh thread off the ThreadPool)
-        Task.Factory.StartNew(
-            () => RunUdpListenerLoop(cancellationToken),
-            cancellationToken,
-            TaskCreationOptions.LongRunning,
-            TaskScheduler.Default);
-
-        // 2. Background file logging task
-        Task.Run(() => RunLoggerLoopAsync(_logFilePath, cancellationToken), cancellationToken);
-    }
-
-    /// <summary>
-    /// Runs the listener loop.
-    /// </summary>
-    /// <param name="cancellationToken">Triggers an operation cancellation.</param>
-    public void RunUdpListenerLoop(CancellationToken cancellationToken) {
-        using var listener = new UdpClient();
-
-        try
-        {        
-            listener.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            var localEp = new IPEndPoint(IPAddress.Any, Port);
-            listener.Client.Bind(localEp);
-
-            listener.JoinMulticastGroup(
-                IPAddress.Parse(MulticastGroup),
-                IPAddress.Parse(LocalEthIp));
-
-            Console.WriteLine($"Listening for CanSat telemetry on {MulticastGroup}:{Port} via {LocalEthIp}...");
-
-            while(!cancellationToken.IsCancellationRequested)
-            {
-                try
-                {
-                    IPEndPoint? remoteEp = null;
-                    var data = listener.Receive(ref remoteEp);
-
-                    if (data != null && data.Length > 0)
-                        {
-                            _dataChannel.Writer.TryWrite(data);
-                        }
-                }
-                catch (SocketException ex)
-                {
-                    Console.WriteLine($"[UDP Socket Error]: {ex.Message}");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[UDP Loop Error]: {ex.Message}");
-                }
-            }
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[Fatal UDP Initialization Error]: {ex.Message}");
-        }
-        finally
-        {
-            try { listener.DropMulticastGroup(MulticastGroup); } catch { }
-            DataChannel.Writer.Complete();
-        }
-    }
-
-    /// <summary>
-    /// Runs the logger loop asynchronously.
-    /// </summary>
-    /// <param name="cancellationToken">Triggers an operation cancellation.</param>
-    /// <returns>Logger async task.</returns>
-    private async Task RunLoggerLoopAsync(CancellationToken cancellationToken)
+    public void Start()
     {
+        if (_listener is not null) throw new InvalidOperationException("Already started.");
+
+        _logger = new Thread(LogLoop) { Name = "Telemetry-Logger", Priority = ThreadPriority.AboveNormal };
+        _listener = new Thread(ListenLoop) { Name = "Telemetry-Listener", Priority = ThreadPriority.AboveNormal };
+        _logger.Start();
+        _listener.Start();
+    }
+
+    private void Stop()
+    {
+        _cts.Cancel();
+        _listener?.Join();
+        _logQueue.CompleteAdding();
+        _logger?.Join();
+        foreach (var s in _subscribers) s.TryComplete();
+    }
+
+    public void Dispose()
+    {
+        Stop();
+        _cts.Dispose();
+        _logQueue.Dispose();
+    }
+
+    private Socket CreateSocket()
+    {
+        var s = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
         try
         {
-            var dir = Path.GetDirectoryName(LogFilePath);
-            if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+            s.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            s.ReceiveBufferSize = 4 * 1024 * 1024; // survive short scheduling hiccups
+            s.ReceiveTimeout = 500;
+            s.Bind(new IPEndPoint(IPAddress.Any, port));
+            s.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.AddMembership,
+                new MulticastOption(_group, _localIp));
+            return s;
+        }
+        catch
+        {
+            s.Dispose();
+            throw;
+        }
+    }
 
-            using FileStream fs = new FileStream(LogFilePath, FileMode.Append, FileAccess.Write, FileShare.Read);
-            using StreamWriter writer = new StreamWriter(fs, Encoding.UTF8);
+    private void ListenLoop()
+    {
+        var ct = _cts.Token;
+        var buffer = new byte[65535];
 
-            if (fs.Length == 0)
+        while (!ct.IsCancellationRequested)
+        {
+            try
             {
-                await writer.WriteLineAsync("SystemTimestamp,RawHexData");
-                await writer.FlushAsync(cancellationToken);
-            }
+                using var socket = CreateSocket();
+                Console.WriteLine($"Listening on {_group}:{port} via {_localIp}...");
 
-            while (await _dataChannel.Reader.WaitToReadAsync(cancellationToken))
-            {
-                while (_dataChannel.Reader.TryRead(out byte[]? payload))
+                while (!ct.IsCancellationRequested)
                 {
+                    int n;
                     try
                     {
-                        string timeStr = DateTime.UtcNow.ToString("o");
-                        string hexData = Convert.ToHexString(payload);
-
-                        await writer.WriteLineAsync($"{timeStr},{hexData}");
-                        await writer.FlushAsync(cancellationToken);
-
-                        // NOTE: Trigger your 3DKalman filter & UI updates here or via an event/callback
+                        n = socket.Receive(buffer);
                     }
-                    catch (Exception ex)
+                    catch (SocketException ex) when (ex.SocketErrorCode == SocketError.TimedOut)
                     {
-                        Console.WriteLine($"[Logger Exception] Failed to record packet: {ex.Message}");
+                        continue;
                     }
+
+                    if (n == 0) continue;
+
+                    var packet = new TelemetryPacket(DateTime.UtcNow, [.. buffer.AsSpan(0, n)]);
+                    _logQueue.Add(packet);
+                    foreach (var sub in _subscribers) sub.TryWrite(packet);
                 }
             }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Listener Error] {ex.Message}");
+                ct.WaitHandle.WaitOne(1000);
+            }
         }
-        catch (OperationCanceledException)
+    }
+
+    private void LogLoop()
+    {
+        TelemetryPacket? pending = null;
+        var finished = false;
+
+        while (!finished)
         {
-            // Clean shutdown requested
+            try
+            {
+                Directory.CreateDirectory(Path.GetDirectoryName(Path.GetFullPath(logPath))!);
+                using var fs = new FileStream(logPath, FileMode.Append, FileAccess.Write,
+                    FileShare.Read, bufferSize: 64 * 1024);
+
+                if (fs.Length == 0)
+                    fs.Write(Encoding.UTF8.GetBytes(Header + "\n"));
+
+                while (true)
+                {
+                    TelemetryPacket packet;
+                    if (pending is { } retry) packet = retry;
+                    else if (!_logQueue.TryTake(out packet, Timeout.Infinite))
+                    {
+                        finished = true;
+                        break;
+                    }
+
+                    pending = packet;
+                    WritePacket(fs, packet);
+                    pending = null;
+
+                    if (_logQueue.Count == 0) fs.Flush(flushToDisk: true);
+                }
+
+                fs.Flush(flushToDisk: true);
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Logger Error] {ex.Message}");
+                Thread.Sleep(1000);
+            }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[Fatal Logger Error] {ex.Message}");
-        }
+    }
+
+    private void WritePacket(FileStream fs, in TelemetryPacket p)
+    {
+        Utf8Formatter.TryFormat(p.TimestampUtc, _tsBuf, out var tsLen, new StandardFormat('O'));
+
+        var data = p.Data.AsSpan();
+        while (data.Length > 0 && data[^1] is (byte)'\r' or (byte)'\n')
+            data = data[..^1];
+
+        fs.Write(_tsBuf.AsSpan(0, tsLen));
+        fs.WriteByte((byte)',');
+        fs.Write(data);
+        fs.WriteByte((byte)'\n');
     }
 }
 
 
-
-
-
-internal abstract class CanSatGroundStation
+internal static class CanSatGroundStation
 {
 
     private static readonly VectorBuilder<double> V = Vector<double>.Build;
@@ -173,6 +204,7 @@ internal abstract class CanSatGroundStation
     private const string MulticastGroup = "239.255.1.1";
     private const int Port = 5000;
     private const string LocalEthIp = "10.1.1.91";
+    private const string LogFile = "telemetry.csv";
 
     private const double MeasStd = 0.001;
     private const double AccelStd = 0.001;
@@ -181,36 +213,28 @@ internal abstract class CanSatGroundStation
     private static void Main()
     {
         // TODO: Replace with new TelemetryEngine class and methods
-        // using var listener = new UdpClient();
+       using var engine = new TelemetryEngine(LocalEthIp, MulticastGroup, Port, LogFile);
+       var live = engine.Subscribe();
+       engine.Start();
 
-        // listener.Client.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-        // var localEp = new IPEndPoint(IPAddress.Any, Port);
-        // listener.Client.Bind(localEp);
+       _ = Task.Run(async () =>
+       {
+           await foreach (var packet in live.ReadAllAsync())
+           {
+               var line = Encoding.UTF8.GetString(packet.Data);
+               Console.WriteLine(line);
+           }
+       });
 
-        // listener.JoinMulticastGroup(
-        //     IPAddress.Parse(MulticastGroup),
-        //     IPAddress.Parse(LocalEthIp));
+       using var quit = new ManualResetEventSlim();
+       Console.CancelKeyPress += (_, e) =>
+       {
+           e.Cancel = true;
+           quit.Set();
+       };
 
-        // Console.WriteLine($"Listening for CanSat telemetry on {MulticastGroup}:{Port} via {LocalEthIp}...");
-
-        // try
-        // {
-        //     while (true)
-        //     {
-        //         IPEndPoint? remoteEp = null;
-        //         var data = listener.Receive(ref remoteEp);
-
-        //         ProcessPacket(data);
-        //     }
-        // }
-        // catch (Exception ex)
-        // {
-        //     Console.WriteLine($"Error: {ex.Message}");
-        // }
-        // finally
-        // {
-        //     listener.DropMulticastGroup(IPAddress.Parse(MulticastGroup));
-        // }
+       Console.WriteLine("Press Ctrl+C to quit");
+       quit.Wait();
     }
 
     private struct TelemetryFormat
@@ -255,7 +279,7 @@ internal abstract class CanSatGroundStation
                 "----------------------------------------");
         }
     }
-// TODO: Packet processing class + methods
+
     private static void ProcessPacket(byte[] data)
     {
         var raw = Encoding.UTF8.GetString(data).Trim();
