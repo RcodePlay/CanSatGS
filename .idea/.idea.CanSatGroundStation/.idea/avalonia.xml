@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AvaloniaProject">
+    <option name="projectPerEditor">
+      <map>
+        <entry key="CanSatGSUI/App.axaml" value="CanSatGSUI/CanSatGSUI.csproj" />
+        <entry key="CanSatGSUI/Views/MainWindow.axaml" value="CanSatGSUI/CanSatGSUI.csproj" />
+      </map>
+    </option>
+  </component>
+</project>

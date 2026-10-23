@@ -1,27 +1,159 @@
 using System.Buffers;
+using System.Buffers.Text;
+using System.Collections.Concurrent;
+using System.Collections.Immutable;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
-using System.Buffers.Text;
-using System.Collections.Concurrent;
-using System.Collections.Immutable;
 using System.Threading.Channels;
 using _3DKalman;
 using MathNet.Numerics.LinearAlgebra;
 
 namespace CanSatGroundStation;
 
+public enum LogLevel { Debug, Info, Ok, Warning, Error }
+
+public interface IAppLogger
+{
+    void Log(LogLevel level, string message, Exception? ex = null);
+}
+
+/// <summary>Logger that discards everything. Used when the host doesn't supply one.</summary>
+public sealed class NullAppLogger : IAppLogger
+{
+    public static readonly NullAppLogger Instance = new();
+    public void Log(LogLevel level, string message, Exception? ex = null) { }
+}
+
 public readonly record struct TelemetryPacket(DateTime TimestampUtc, byte[] Data);
 
 /// <summary>
-/// Telemetry collection class.
+/// One parsed telemetry line (the fields after the system timestamp in the CSV log).
 /// </summary>
-public sealed class TelemetryEngine(string localIp, string multicastGroup, int port, string logPath)
+public readonly record struct ProcessedPacket
+{
+    public const int FieldCount = 16;
+
+    public int TimeSinceStart { get; init; }
+    public int GPSTimeUTC { get; init; }
+    public bool GPSFix { get; init; }
+    public int SatelliteCount { get; init; }
+    public double Latitude { get; init; }
+    public double Longitude { get; init; }
+    public double GPSAltitude { get; init; }
+    public float AltitudeBarometer { get; init; }
+    public float Temperature { get; init; }
+    public float Pressure { get; init; }
+    public float Humidity { get; init; }
+    public float AccelerationX { get; init; }
+    public float AccelerationY { get; init; }
+    public float AccelerationZ { get; init; }
+    public float RSSI { get; init; }
+    public float SNR { get; init; }
+
+    /// <summary>Parses a raw packet. Returns false (and never throws) on malformed input.</summary>
+    public static bool TryParse(ReadOnlySpan<byte> data, out ProcessedPacket packet)
+        => TryParse(Encoding.UTF8.GetString(data), out packet);
+
+    /// <inheritdoc cref="TryParse(ReadOnlySpan{byte}, out ProcessedPacket)"/>
+    public static bool TryParse(string raw, out ProcessedPacket packet)
+    {
+        packet = default;
+        var f = raw.Trim().Split(',');
+        if (f.Length < FieldCount) return false;
+
+        var inv = CultureInfo.InvariantCulture;
+        const NumberStyles ints = NumberStyles.Integer;
+        const NumberStyles floats = NumberStyles.Float;
+
+        if (!int.TryParse(f[0], ints, inv, out var timeSinceStart) ||
+            !int.TryParse(f[1], ints, inv, out var gpsTime) ||
+            !int.TryParse(f[3], ints, inv, out var sats) ||
+            !double.TryParse(f[4], floats, inv, out var lat) ||
+            !double.TryParse(f[5], floats, inv, out var lon) ||
+            !double.TryParse(f[6], floats, inv, out var gpsAlt) ||
+            !float.TryParse(f[7], floats, inv, out var baroAlt) ||
+            !float.TryParse(f[8], floats, inv, out var temp) ||
+            !float.TryParse(f[9], floats, inv, out var press) ||
+            !float.TryParse(f[10], floats, inv, out var hum) ||
+            !float.TryParse(f[11], floats, inv, out var ax) ||
+            !float.TryParse(f[12], floats, inv, out var ay) ||
+            !float.TryParse(f[13], floats, inv, out var az) ||
+            !float.TryParse(f[14], floats, inv, out var rssi) ||
+            !float.TryParse(f[15], floats, inv, out var snr))
+            return false;
+
+        packet = new ProcessedPacket
+        {
+            TimeSinceStart = timeSinceStart,
+            GPSTimeUTC = gpsTime,
+            GPSFix = f[2].Trim() == "1",
+            SatelliteCount = sats,
+            Latitude = lat,
+            Longitude = lon,
+            GPSAltitude = gpsAlt,
+            AltitudeBarometer = baroAlt,
+            Temperature = temp,
+            Pressure = press,
+            Humidity = hum,
+            AccelerationX = ax,
+            AccelerationY = ay,
+            AccelerationZ = az,
+            RSSI = rssi,
+            SNR = snr
+        };
+        return true;
+    }
+
+    public override string ToString()
+    {
+        var inv = CultureInfo.InvariantCulture;
+        return string.Join(Environment.NewLine,
+            $"Time since start : {TimeSinceStart} s",
+            $"GPS time (UTC)   : {GPSTimeUTC:D6}",
+            $"GPS fix          : {(GPSFix ? "Yes" : "No")}",
+            $"Satellites       : {SatelliteCount}",
+            $"Latitude         : {Latitude.ToString("F5", inv)}",
+            $"Longitude        : {Longitude.ToString("F5", inv)}",
+            $"GPS altitude     : {GPSAltitude.ToString("F1", inv)} m",
+            $"Barometer alt    : {AltitudeBarometer.ToString("F1", inv)} m",
+            $"Temperature      : {Temperature.ToString("F1", inv)} C",
+            $"Pressure         : {Pressure.ToString("F2", inv)} hPa",
+            $"Humidity         : {Humidity.ToString("F1", inv)} %",
+            $"Acceleration X   : {AccelerationX.ToString("F2", inv)} m/s^2",
+            $"Acceleration Y   : {AccelerationY.ToString("F2", inv)} m/s^2",
+            $"Acceleration Z   : {AccelerationZ.ToString("F2", inv)} m/s^2",
+            $"RSSI             : {RSSI.ToString("F0", inv)} dBm",
+            $"SNR              : {SNR.ToString("F0", inv)} dB",
+            "----------------------------------------");
+    }
+}
+
+/// <summary>Result of a Kalman update and forecast for one packet.</summary>
+/// <param name="Source">The packet that triggered the update.</param>
+/// <param name="Measurement">Measured [lat, lon, alt] fed to the filter.</param>
+/// <param name="PredictedTrajectory">Forecast positions, <c>StepsToPredict</c> steps of <c>DeltaT</c> ahead.</param>
+public sealed record TrajectoryForecast(
+    ProcessedPacket Source,
+    Vector<double> Measurement,
+    IReadOnlyList<Vector<double>> PredictedTrajectory);
+
+/// <summary>
+/// Telemetry collection class: listens on a UDP multicast group, logs raw packets to CSV,
+/// and fans them out to subscribers.
+/// </summary>
+public sealed class TelemetryEngine(
+    string localIp,
+    string multicastGroup,
+    int port,
+    string logPath,
+    IAppLogger? logger = null)
     : IDisposable
 {
     private const string Header = "SystemTimestamp,TimeSinceStart,GPSTimeUTC,GPSFix,SatelliteCount,Latitude,Longitude,GPSAltitude,AltitudeBarometer,Temperature,Pressure,Humidity,AccelerationX,AccelerationY,AccelerationZ,RSSI,SNR";
 
+    private readonly IAppLogger _log = logger ?? NullAppLogger.Instance;
     private readonly IPAddress _localIp = IPAddress.Parse(localIp);
     private readonly IPAddress _group = IPAddress.Parse(multicastGroup);
 
@@ -35,6 +167,13 @@ public sealed class TelemetryEngine(string localIp, string multicastGroup, int p
     private readonly byte[] _tsBuf = new byte[40];
     private Thread? _listener;
     private Thread? _logger;
+    private int _stopped;
+
+    public string LocalIp => localIp;
+    public string MulticastGroup => multicastGroup;
+    public int Port => port;
+    public string LogPath => logPath;
+    public bool IsRunning => _listener is not null && _stopped == 0;
 
     /// <summary>
     /// Live feed for UI / processing. Each subscriber gets its own bounded channel,
@@ -54,6 +193,7 @@ public sealed class TelemetryEngine(string localIp, string multicastGroup, int p
 
     public void Start()
     {
+        ObjectDisposedException.ThrowIf(_stopped != 0, this);
         if (_listener is not null) throw new InvalidOperationException("Already started.");
 
         _logger = new Thread(LogLoop) { Name = "Telemetry-Logger", Priority = ThreadPriority.AboveNormal };
@@ -62,8 +202,11 @@ public sealed class TelemetryEngine(string localIp, string multicastGroup, int p
         _listener.Start();
     }
 
-    private void Stop()
+    /// <summary>Stops listening, flushes the log, and completes all subscriber channels. Idempotent.</summary>
+    public void Stop()
     {
+        if (Interlocked.Exchange(ref _stopped, 1) != 0) return;
+
         _cts.Cancel();
         _listener?.Join();
         _logQueue.CompleteAdding();
@@ -108,7 +251,7 @@ public sealed class TelemetryEngine(string localIp, string multicastGroup, int p
             try
             {
                 using var socket = CreateSocket();
-                Console.WriteLine($"Listening on {_group}:{port} via {_localIp}...");
+                _log.Log(LogLevel.Ok, $"Listening on {_group}:{port} via {_localIp}...");
 
                 while (!ct.IsCancellationRequested)
                 {
@@ -125,13 +268,14 @@ public sealed class TelemetryEngine(string localIp, string multicastGroup, int p
                     if (n == 0) continue;
 
                     var packet = new TelemetryPacket(DateTime.UtcNow, [.. buffer.AsSpan(0, n)]);
+                    // ReSharper disable once MethodSupportsCancellation
                     _logQueue.Add(packet);
                     foreach (var sub in _subscribers) sub.TryWrite(packet);
                 }
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Listener Error] {ex.Message}");
+                _log.Log(LogLevel.Error, "Listener error", ex);
                 ct.WaitHandle.WaitOne(1000);
             }
         }
@@ -174,7 +318,7 @@ public sealed class TelemetryEngine(string localIp, string multicastGroup, int p
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[Logger Error] {ex.Message}");
+                _log.Log(LogLevel.Error, "Logger error", ex);
                 Thread.Sleep(1000);
             }
         }
@@ -195,131 +339,122 @@ public sealed class TelemetryEngine(string localIp, string multicastGroup, int p
     }
 }
 
-
-internal static class CanSatGroundStation
+/// <summary>
+/// Ground station: consumes the live telemetry feed, parses packets, runs the Kalman filter,
+/// and raises events for the host application (UI, console, etc.).
+/// Owns the <see cref="TelemetryEngine"/> it is given: <see cref="Start"/> starts it and
+/// <see cref="DisposeAsync"/> disposes it.
+/// </summary>
+public sealed class CanSatGroundStation(
+    TelemetryEngine engine,
+    double deltaT = 1.0,
+    double measStd = 0.001,
+    double accelStd = 0.001,
+    IAppLogger? logger = null,
+    int stepsToPredict = 5) : IAsyncDisposable, IDisposable
 {
-
     private static readonly VectorBuilder<double> V = Vector<double>.Build;
 
-    private const string MulticastGroup = "239.255.1.1";
-    private const int Port = 5000;
-    private const string LocalEthIp = "10.1.1.91";
-    private const string LogFile = "telemetry.csv";
+    private readonly IAppLogger _log = logger ?? NullAppLogger.Instance;
+    private Kalman3D? _kalman;
+    private readonly CancellationTokenSource _cts = new();
+    private Task? _processing;
+    private int _disposed;
 
-    private const double MeasStd = 0.001;
-    private const double AccelStd = 0.001;
-    private static readonly Vector<double> InitialPos = V.Dense(3);
+    public TelemetryEngine Engine => engine;
+    public double DeltaT => deltaT;
+    public int StepsToPredict => stepsToPredict;
+    public ProcessedPacket? LastPacket { get; private set; }
+    public TrajectoryForecast? LastForecast { get; private set; }
 
-    private static void Main()
+    /// <summary>Raised for every successfully parsed packet (on a thread-pool thread).</summary>
+    public event Action<ProcessedPacket>? PacketReceived;
+
+    /// <summary>Raised after the Kalman filter was updated and a forecast computed (on a thread-pool thread).</summary>
+    public event Action<TrajectoryForecast>? ForecastUpdated;
+
+    /// <summary>Subscribes to the engine, starts it, and begins processing in the background.</summary>
+    public void Start()
     {
-        // TODO: Replace with new TelemetryEngine class and methods
-       using var engine = new TelemetryEngine(LocalEthIp, MulticastGroup, Port, LogFile);
-       var live = engine.Subscribe();
-       engine.Start();
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
+        if (_processing is not null) throw new InvalidOperationException("Already started.");
 
-       _ = Task.Run(async () =>
-       {
-           await foreach (var packet in live.ReadAllAsync())
-           {
-               var line = Encoding.UTF8.GetString(packet.Data);
-               Console.WriteLine(line);
-           }
-       });
-
-       using var quit = new ManualResetEventSlim();
-       Console.CancelKeyPress += (_, e) =>
-       {
-           e.Cancel = true;
-           quit.Set();
-       };
-
-       Console.WriteLine("Press Ctrl+C to quit");
-       quit.Wait();
+        var live = engine.Subscribe();
+        engine.Start();
+        _processing = Task.Run(() => ProcessLoopAsync(live, _cts.Token));
     }
 
-    private struct TelemetryFormat
-    {
-        public int TimeSinceStart;
-        public int GPSTimeUTC;
-        public bool GPSFix;
-        public int SatelliteCount;
-        public float Latitude;
-        public float Longitude;
-        public float GPSAltitude;
-        public float AltitudeBarometer;
-        public float Temperature;
-        public float Pressure;
-        public float Humidity;
-        public float AccelerationX;
-        public float AccelerationY;
-        public float AccelerationZ;
-        public float RSSI;
-        public float SNR;
+    /// <summary>Completes when the live feed has ended (engine stopped) or the station was disposed.</summary>
+    public Task Completion => _processing ?? Task.CompletedTask;
 
-        public override string ToString()
+    private async Task ProcessLoopAsync(ChannelReader<TelemetryPacket> live, CancellationToken ct)
+    {
+        try
         {
-            var inv = CultureInfo.InvariantCulture;
-            return string.Join(Environment.NewLine,
-                $"Time since start : {TimeSinceStart} s",
-                $"GPS time (UTC)   : {GPSTimeUTC:D6}",
-                $"GPS fix          : {(GPSFix ? "Yes" : "No")}",
-                $"Satellites       : {SatelliteCount}",
-                $"Latitude         : {Latitude.ToString("F5", inv)}",
-                $"Longitude        : {Longitude.ToString("F5", inv)}",
-                $"GPS altitude     : {GPSAltitude.ToString("F1", inv)} m",
-                $"Barometer alt    : {AltitudeBarometer.ToString("F1", inv)} m",
-                $"Temperature      : {Temperature.ToString("F1", inv)} C",
-                $"Pressure         : {Pressure.ToString("F2", inv)} hPa",
-                $"Humidity         : {Humidity.ToString("F1", inv)} %",
-                $"Acceleration X   : {AccelerationX.ToString("F2", inv)} m/s^2",
-                $"Acceleration Y   : {AccelerationY.ToString("F2", inv)} m/s^2",
-                $"Acceleration Z   : {AccelerationZ.ToString("F2", inv)} m/s^2",
-                $"RSSI             : {RSSI.ToString("F0", inv) + " dBm"}",
-                $"SNR              : {SNR.ToString("F0", inv) + " dB"}",
-                "----------------------------------------");
+            await foreach (var packet in live.ReadAllAsync(ct))
+            {
+                try
+                {
+                    Handle(packet);
+                }
+                catch (Exception ex)
+                {
+                    // A bad packet or a faulty event handler must not kill the processing loop.
+                    _log.Log(LogLevel.Error, "Error while processing packet", ex);
+                }
+            }
         }
+        catch (OperationCanceledException) { }
     }
 
-    private static void ProcessPacket(byte[] data)
+    private void Handle(TelemetryPacket packet)
     {
-        var raw = Encoding.UTF8.GetString(data).Trim();
-        var f = raw.Split(',');
-
-        if (f.Length != 16)
+        if (!ProcessedPacket.TryParse(packet.Data, out var telemetry))
         {
-            Console.WriteLine($"Malformed packet ({f.Length} fields): {raw}");
+            _log.Log(LogLevel.Warning,
+                $"Could not parse packet: {Encoding.UTF8.GetString(packet.Data).Trim()}");
             return;
         }
 
-        var inv = CultureInfo.InvariantCulture;
+        LastPacket = telemetry;
+        _log.Log(LogLevel.Debug, $"Received telemetry packet:{Environment.NewLine}{telemetry}");
+        PacketReceived?.Invoke(telemetry);
 
-        try
-        {
-            var telemetry = new TelemetryFormat
-            {
-                TimeSinceStart = int.Parse(f[0], inv),
-                GPSTimeUTC = int.Parse(f[1], inv),
-                GPSFix = f[2].Trim() == "1",
-                SatelliteCount = int.Parse(f[3], inv),
-                Latitude = float.Parse(f[4], inv),
-                Longitude = float.Parse(f[5], inv),
-                GPSAltitude = float.Parse(f[6], inv),
-                AltitudeBarometer = float.Parse(f[7], inv),
-                Temperature = float.Parse(f[8], inv),
-                Pressure = float.Parse(f[9], inv),
-                Humidity = float.Parse(f[10], inv),
-                AccelerationX = float.Parse(f[11], inv),
-                AccelerationY = float.Parse(f[12], inv),
-                AccelerationZ = float.Parse(f[13], inv),
-                RSSI = float.Parse(f[14], inv),
-                SNR = float.Parse(f[15], inv)
-            };
+        // Without a fix the GPS position is meaningless; don't feed it to the filter.
+        if (!telemetry.GPSFix) return;
 
-            Console.WriteLine(telemetry);
-        }
-        catch (FormatException)
+        var measurement = V.Dense([telemetry.Latitude, telemetry.Longitude, telemetry.GPSAltitude]);
+        if (_kalman is null)
         {
-            Console.WriteLine($"Could not parse packet: {raw}");
+            _kalman = new Kalman3D(measStd, accelStd, measurement);
         }
+        else
+        {
+            _kalman.Update(measurement);
+        }
+        var predicted = _kalman.Forecast(stepsToPredict, deltaT);
+
+        var forecast = new TrajectoryForecast(telemetry, measurement, predicted);
+        LastForecast = forecast;
+        ForecastUpdated?.Invoke(forecast);
+    }
+
+    public void Dispose()
+    {
+        DisposeAsync().AsTask().GetAwaiter().GetResult();
+    }
+
+    public async ValueTask DisposeAsync()
+    {
+        if (Interlocked.Exchange(ref _disposed, 1) != 0) return;
+
+        engine.Dispose();      // completes the subscriber channel, so the loop ends by itself
+        _cts.CancelAfter(TimeSpan.FromSeconds(2)); // safety net if the loop is stuck in a handler
+        if (_processing is not null)
+        {
+            try { await _processing.ConfigureAwait(false); }
+            catch (Exception ex) { _log.Log(LogLevel.Error, "Processing task faulted", ex); }
+        }
+        _cts.Dispose();
     }
 }
