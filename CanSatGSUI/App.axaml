@@ -3,13 +3,31 @@
              x:Class="CanSatGSUI.App"
              xmlns:local="using:CanSatGSUI"
              RequestedThemeVariant="Default">
-             <!-- "Default" ThemeVariant follows system theme variant. "Dark" or "Light" are other available options. -->
 
     <Application.DataTemplates>
         <local:ViewLocator />
     </Application.DataTemplates>
 
     <Application.Styles>
-        <FluentTheme />
+             <FluentTheme/>
     </Application.Styles>
+
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.ThemeDictionaries>
+                <ResourceDictionary x:Key="Light">
+                    <SolidColorBrush x:Key="App.BackgroundBrush" Color="#FFF0B3"/>
+                    <SolidColorBrush x:Key="App.ForegroundBrush" Color="#FFF0B3"/>
+                    <SolidColorBrush x:Key="App.AccentBrush" Color="#241A2C"/>
+                    <SolidColorBrush x:Key="App.CardBackground" Color="#5A3B6D"/>
+                </ResourceDictionary>
+                <ResourceDictionary x:Key="Dark">
+                    <SolidColorBrush x:Key="App.BackgroundBrush" Color="#0B0A0F"/>
+                    <SolidColorBrush x:Key="App.ForegroundBrush" Color="#FFF0B3"/>
+                    <SolidColorBrush x:Key="App.AccentBrush" Color="#5A3B6D"/>
+                    <SolidColorBrush x:Key="App.CardBackground" Color="#241A2C"/>
+                </ResourceDictionary>
+            </ResourceDictionary.ThemeDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
 </Application>

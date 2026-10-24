@@ -17,7 +17,6 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 {
     private CanSatGroundStation.CanSatGroundStation? _groundStation;
     private readonly IAppLogger _logger;
-    private readonly AppSettings _settings;
     private bool _disposed;
 
     // Status and Metadata
@@ -77,7 +76,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public ObservableCollection<string> Lines { get; } = [];
     public ObservableCollection<string> PacketHistory { get; } = [];
 
-    public AppSettings Settings => _settings;
+    public AppSettings Settings { get; }
 
     /// <summary>
     /// Design-time parameterless constructor for XAML designer preview.
@@ -85,8 +84,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public MainViewModel()
     {
         _logger = NullAppLogger.Instance;
-        _settings = new AppSettings();
-        LoadSettingsIntoProperties(_settings);
+        Settings = new AppSettings();
+        LoadSettingsIntoProperties(Settings);
 
         ConnectionStatus = "Preview Mode";
         TimeSinceStart = 42;
@@ -123,8 +122,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         _groundStation = groundStation ?? throw new ArgumentNullException(nameof(groundStation));
         _logger = logger ?? NullAppLogger.Instance;
-        _settings = settings ?? AppSettings.Load();
-        LoadSettingsIntoProperties(_settings);
+        Settings = settings ?? AppSettings.Load();
+        LoadSettingsIntoProperties(Settings);
 
         _groundStation.PacketReceived += OnPacketReceived;
         _groundStation.ForecastUpdated += OnForecastUpdated;
@@ -152,16 +151,16 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         try
         {
-            _settings.LocalEthIp = SettingLocalEthIp?.Trim() ?? "10.1.1.91";
-            _settings.MulticastGroup = SettingMulticastGroup?.Trim() ?? "239.255.1.1";
-            _settings.Port = SettingPort;
-            _settings.LogFile = SettingLogFile?.Trim() ?? "telemetry.csv";
-            _settings.DeltaT = SettingDeltaT;
-            _settings.MeasStd = SettingMeasStd;
-            _settings.AccelStd = SettingAccelStd;
-            _settings.StepsToPredict = SettingStepsToPredict;
+            Settings.LocalEthIp = SettingLocalEthIp?.Trim() ?? "10.1.1.91";
+            Settings.MulticastGroup = SettingMulticastGroup?.Trim() ?? "239.255.1.1";
+            Settings.Port = SettingPort;
+            Settings.LogFile = SettingLogFile?.Trim() ?? "telemetry.csv";
+            Settings.DeltaT = SettingDeltaT;
+            Settings.MeasStd = SettingMeasStd;
+            Settings.AccelStd = SettingAccelStd;
+            Settings.StepsToPredict = SettingStepsToPredict;
 
-            _settings.Save();
+            Settings.Save();
             SettingsSaved = true;
             SettingsStatusMessage = $"Settings saved successfully ({DateTime.Now:HH:mm:ss}).";
 
@@ -196,8 +195,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 _groundStation = null;
             }
 
-            var engine = new TelemetryEngine(_settings.LocalEthIp, _settings.MulticastGroup, _settings.Port, _settings.LogFile, _logger);
-            _groundStation = new CanSatGroundStation.CanSatGroundStation(engine, _settings.DeltaT, _settings.MeasStd, _settings.AccelStd, _logger, _settings.StepsToPredict);
+            var engine = new TelemetryEngine(Settings.LocalEthIp, Settings.MulticastGroup, Settings.Port, Settings.LogFile, _logger);
+            _groundStation = new CanSatGroundStation.CanSatGroundStation(engine, Settings.DeltaT, Settings.MeasStd, Settings.AccelStd, _logger, Settings.StepsToPredict);
             _groundStation.PacketReceived += OnPacketReceived;
             _groundStation.ForecastUpdated += OnForecastUpdated;
 
@@ -279,7 +278,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public void UpdateWithForecast(TrajectoryForecast forecast)
     {
         PredictedTrajectory.Clear();
-        var deltaT = _groundStation?.DeltaT ?? _settings.DeltaT;
+        var deltaT = _groundStation?.DeltaT ?? Settings.DeltaT;
         for (var i = 0; i < forecast.PredictedTrajectory.Count; i++)
         {
             var p = forecast.PredictedTrajectory[i];
