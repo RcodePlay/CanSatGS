@@ -33,22 +33,29 @@ public readonly record struct TelemetryPacket(DateTime TimestampUtc, byte[] Data
 /// </summary>
 public readonly record struct ProcessedPacket
 {
-    public const int FieldCount = 16;
+    public const int FieldCount = 23;
 
     public int TimeSinceStart { get; init; }
     public int GPSTimeUTC { get; init; }
-    public bool GPSFix { get; init; }
+    public int GPSFix { get; init; }
     public int SatelliteCount { get; init; }
     public double Latitude { get; init; }
     public double Longitude { get; init; }
     public double GPSAltitude { get; init; }
     public float AltitudeBarometer { get; init; }
+    public float PressureBarometer { get; init; }
     public float Temperature { get; init; }
-    public float Pressure { get; init; }
     public float Humidity { get; init; }
     public float AccelerationX { get; init; }
     public float AccelerationY { get; init; }
     public float AccelerationZ { get; init; }
+    public float OmegaX { get; init; }
+    public float OmegaY { get; init; }
+    public float OmegaZ { get; init; }
+    public float MagneticFieldX { get; init; }
+    public float MagneticFieldY { get; init; }
+    public float MagneticFieldZ { get; init; }
+    public float Theta { get; init; }
     public float RSSI { get; init; }
     public float SNR { get; init; }
 
@@ -69,37 +76,52 @@ public readonly record struct ProcessedPacket
 
         if (!int.TryParse(f[0], ints, inv, out var timeSinceStart) ||
             !int.TryParse(f[1], ints, inv, out var gpsTime) ||
+            !int.TryParse(f[2], ints, inv, out var gpsFix) ||
             !int.TryParse(f[3], ints, inv, out var sats) ||
             !double.TryParse(f[4], floats, inv, out var lat) ||
             !double.TryParse(f[5], floats, inv, out var lon) ||
             !double.TryParse(f[6], floats, inv, out var gpsAlt) ||
             !float.TryParse(f[7], floats, inv, out var baroAlt) ||
-            !float.TryParse(f[8], floats, inv, out var temp) ||
-            !float.TryParse(f[9], floats, inv, out var press) ||
+            !float.TryParse(f[8], floats, inv, out var press) ||
+            !float.TryParse(f[9], floats, inv, out var temp) ||
             !float.TryParse(f[10], floats, inv, out var hum) ||
             !float.TryParse(f[11], floats, inv, out var ax) ||
             !float.TryParse(f[12], floats, inv, out var ay) ||
             !float.TryParse(f[13], floats, inv, out var az) ||
-            !float.TryParse(f[14], floats, inv, out var rssi) ||
-            !float.TryParse(f[15], floats, inv, out var snr))
+            !float.TryParse(f[14], floats, inv, out var omegax) ||
+            !float.TryParse(f[15], floats, inv, out var omegay) ||
+            !float.TryParse(f[16], floats, inv, out var omegaz) ||
+            !float.TryParse(f[17], floats, inv, out var mx) ||
+            !float.TryParse(f[18], floats, inv, out var my) ||
+            !float.TryParse(f[19], floats, inv, out var mz) ||
+            !float.TryParse(f[20], floats, inv, out var theta) ||
+            !float.TryParse(f[21], floats, inv, out var rssi) ||
+            !float.TryParse(f[22], floats, inv, out var snr))
             return false;
 
         packet = new ProcessedPacket
         {
             TimeSinceStart = timeSinceStart,
             GPSTimeUTC = gpsTime,
-            GPSFix = f[2].Trim() == "1",
+            GPSFix = gpsFix,
             SatelliteCount = sats,
             Latitude = lat,
             Longitude = lon,
             GPSAltitude = gpsAlt,
             AltitudeBarometer = baroAlt,
+            PressureBarometer = press,
             Temperature = temp,
-            Pressure = press,
             Humidity = hum,
             AccelerationX = ax,
             AccelerationY = ay,
             AccelerationZ = az,
+            OmegaX = omegax,
+            OmegaY = omegay,
+            OmegaZ = omegaz,
+            MagneticFieldX = mx,
+            MagneticFieldY = my,
+            MagneticFieldZ = mz,
+            Theta = theta,
             RSSI = rssi,
             SNR = snr
         };
@@ -112,18 +134,25 @@ public readonly record struct ProcessedPacket
         return string.Join(Environment.NewLine,
             $"Time since start : {TimeSinceStart} s",
             $"GPS time (UTC)   : {GPSTimeUTC:D6}",
-            $"GPS fix          : {(GPSFix ? "Yes" : "No")}",
+            $"GPS fix          : {GPSFix.ToString("F1", inv)}",
             $"Satellites       : {SatelliteCount}",
             $"Latitude         : {Latitude.ToString("F5", inv)}",
             $"Longitude        : {Longitude.ToString("F5", inv)}",
             $"GPS altitude     : {GPSAltitude.ToString("F1", inv)} m",
             $"Barometer alt    : {AltitudeBarometer.ToString("F1", inv)} m",
+            $"Pressure         : {PressureBarometer.ToString("F2", inv)} hPa",
             $"Temperature      : {Temperature.ToString("F1", inv)} C",
-            $"Pressure         : {Pressure.ToString("F2", inv)} hPa",
             $"Humidity         : {Humidity.ToString("F1", inv)} %",
             $"Acceleration X   : {AccelerationX.ToString("F2", inv)} m/s^2",
             $"Acceleration Y   : {AccelerationY.ToString("F2", inv)} m/s^2",
             $"Acceleration Z   : {AccelerationZ.ToString("F2", inv)} m/s^2",
+            $"AngularV X       : {OmegaX.ToString("F2", inv)} rad/s",
+            $"AngularV Y       : {OmegaY.ToString("F2", inv)} rad/s",
+            $"AngularV Z       : {OmegaZ.ToString("F2", inv)} rad/s",
+            $"Magnetic field X : {MagneticFieldX.ToString("F2", inv)} uT",
+            $"Magnetic field Y : {MagneticFieldY.ToString("F2", inv)} uT",
+            $"Magnetic field Z : {MagneticFieldZ.ToString("F2", inv)} uT",
+            $"Azimuth          : {Theta.ToString("F2", inv)} deg",
             $"RSSI             : {RSSI.ToString("F0", inv)} dBm",
             $"SNR              : {SNR.ToString("F0", inv)} dB",
             "----------------------------------------");
@@ -421,7 +450,7 @@ public sealed class CanSatGroundStation(
         PacketReceived?.Invoke(telemetry);
 
         // Without a fix the GPS position is meaningless; don't feed it to the filter.
-        if (!telemetry.GPSFix) return;
+        if (telemetry.GPSFix == 0) return;
 
         var measurement = V.Dense([telemetry.Latitude, telemetry.Longitude, telemetry.GPSAltitude]);
         if (_kalman is null)

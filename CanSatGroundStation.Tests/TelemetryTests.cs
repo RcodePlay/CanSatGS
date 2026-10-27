@@ -16,24 +16,31 @@ public class TelemetryTests
     [Fact]
     public void ProcessedPacket_TryParse_ValidPacketWithFix_Succeeds()
     {
-        var raw = "15,123456,1,8,48.2082,16.3738,250.5,248.2,22.4,1012.3,45.0,0.12,-0.05,9.81,-68,10";
+        var raw = "15,123456,1,8,48.2082,16.3738,250.5,248.2,1012.3,22.4,45.0,0.12,-0.05,9.81,0.1,-0.2,0.3,1.1,-1.2,1.3,42.5,-68,10";
         var success = ProcessedPacket.TryParse(raw, out var packet);
 
         Assert.True(success);
         Assert.Equal(15, packet.TimeSinceStart);
         Assert.Equal(123456, packet.GPSTimeUTC);
-        Assert.True(packet.GPSFix);
+        Assert.Equal(1, packet.GPSFix);
         Assert.Equal(8, packet.SatelliteCount);
         Assert.Equal(48.2082, packet.Latitude, precision: 4);
         Assert.Equal(16.3738, packet.Longitude, precision: 4);
         Assert.Equal(250.5, packet.GPSAltitude, precision: 1);
         Assert.Equal(248.2f, packet.AltitudeBarometer, precision: 1);
         Assert.Equal(22.4f, packet.Temperature, precision: 1);
-        Assert.Equal(1012.3f, packet.Pressure, precision: 1);
+        Assert.Equal(1012.3f, packet.PressureBarometer, precision: 1);
         Assert.Equal(45.0f, packet.Humidity, precision: 1);
         Assert.Equal(0.12f, packet.AccelerationX, precision: 2);
         Assert.Equal(-0.05f, packet.AccelerationY, precision: 2);
         Assert.Equal(9.81f, packet.AccelerationZ, precision: 2);
+        Assert.Equal(0.1f, packet.OmegaX, precision: 2);
+        Assert.Equal(-0.2f, packet.OmegaY, precision: 2);
+        Assert.Equal(0.3f, packet.OmegaZ, precision: 2);
+        Assert.Equal(1.1f, packet.MagneticFieldX, precision: 2);
+        Assert.Equal(-1.2f, packet.MagneticFieldY, precision: 2);
+        Assert.Equal(1.3f, packet.MagneticFieldZ, precision: 2);
+        Assert.Equal(42.5f, packet.Theta, precision: 1);
         Assert.Equal(-68f, packet.RSSI, precision: 0);
         Assert.Equal(10f, packet.SNR, precision: 0);
     }
@@ -50,18 +57,21 @@ public class TelemetryTests
     [Fact]
     public void ProcessedPacket_ToString_ContainsExpectedFields()
     {
-        var raw = "15,123456,1,8,48.2082,16.3738,250.5,248.2,22.4,1012.3,45.0,0.12,-0.05,9.81,-68,10";
+        var raw = "15,123456,1,8,48.2082,16.3738,250.5,248.2,1012.3,22.4,45.0,0.12,-0.05,9.81,0.1,-0.2,0.3,1.1,-1.2,1.3,42.5,-68,10";
         Assert.True(ProcessedPacket.TryParse(raw, out var packet));
 
         var str = packet.ToString();
         Assert.Contains("Time since start : 15 s", str);
         Assert.Contains("GPS time (UTC)   : 123456", str);
-        Assert.Contains("GPS fix          : Yes", str);
+        Assert.Contains("GPS fix          : 1.0", str);
         Assert.Contains("Satellites       : 8", str);
         Assert.Contains("48.20820", str);
         Assert.Contains("16.37380", str);
         Assert.Contains("250.5 m", str);
         Assert.Contains("22.4 C", str);
+        Assert.Contains("AngularV X       : 0.10 rad/s", str);
+        Assert.Contains("Magnetic field Y : -1.20 uT", str);
+        Assert.Contains("Azimuth          : 42.50 deg", str);
     }
 
     [Fact]
@@ -71,7 +81,8 @@ public class TelemetryTests
 
         Assert.Equal("Preview Mode", vm.ConnectionStatus);
         Assert.True(vm.HasData);
-        Assert.True(vm.GpsFix);
+        Assert.Equal(2, vm.GpsFix);
+        Assert.Equal("3D Fix (9 Sats)", vm.GpsFixStatus);
         Assert.Equal(9, vm.SatelliteCount);
         Assert.Equal(48.2082, vm.Latitude);
         Assert.Equal(16.3738, vm.Longitude);
@@ -87,7 +98,7 @@ public class TelemetryTests
     public void MainViewModel_UpdateWithPacket_UpdatesAllProperties()
     {
         var vm = new MainViewModel();
-        var raw = "20,123500,1,10,48.2090,16.3750,260.0,258.5,23.1,1011.8,44.2,0.10,0.02,9.80,-65,12";
+        var raw = "20,123500,1,10,48.2090,16.3750,260.0,258.5,1011.8,23.1,44.2,0.10,0.02,9.80,1.0,-0.5,0.25,12.0,-13.0,14.0,125.5,-65,12";
         Assert.True(ProcessedPacket.TryParse(raw, out var packet));
 
         vm.UpdateWithPacket(packet);
@@ -95,8 +106,8 @@ public class TelemetryTests
         Assert.Equal(20, vm.TimeSinceStart);
         Assert.Equal(123500, vm.GpsTimeUtc);
         Assert.Equal("12:35:00 UTC", vm.GpsTimeFormatted);
-        Assert.True(vm.GpsFix);
-        Assert.Equal("Fixed (10 Sats)", vm.GpsFixStatus);
+        Assert.Equal(1, vm.GpsFix);
+        Assert.Equal("2D Fix (10 Sats)", vm.GpsFixStatus);
         Assert.Equal(10, vm.SatelliteCount);
         Assert.Equal(48.2090, vm.Latitude, precision: 4);
         Assert.Equal(16.3750, vm.Longitude, precision: 4);
@@ -109,6 +120,13 @@ public class TelemetryTests
         Assert.Equal(0.02f, vm.AccelerationY, precision: 2);
         Assert.Equal(9.80f, vm.AccelerationZ, precision: 2);
         Assert.True(vm.AccelerationMagnitude > 9.7 && vm.AccelerationMagnitude < 9.9);
+        Assert.Equal(1.0 * (180.0 / Math.PI), vm.OmegaXDegreesPerSecond, precision: 5);
+        Assert.Equal(-0.5 * (180.0 / Math.PI), vm.OmegaYDegreesPerSecond, precision: 5);
+        Assert.Equal(0.25 * (180.0 / Math.PI), vm.OmegaZDegreesPerSecond, precision: 5);
+        Assert.Equal(12.0f, vm.MagneticFieldX, precision: 1);
+        Assert.Equal(-13.0f, vm.MagneticFieldY, precision: 1);
+        Assert.Equal(14.0f, vm.MagneticFieldZ, precision: 1);
+        Assert.Equal(125.5f, vm.Theta, precision: 1);
         Assert.Equal(-65f, vm.Rssi, precision: 0);
         Assert.Equal(12f, vm.Snr, precision: 0);
         Assert.Contains("-65 dBm", vm.SignalStatus);
@@ -117,10 +135,28 @@ public class TelemetryTests
     }
 
     [Fact]
+    public void MainViewModel_UpdateWithPacket_MapsGpsFixStates()
+    {
+        var vm = new MainViewModel();
+        const string packetWithoutFix = "20,123500,0,0,48.2090,16.3750,260.0,258.5,1011.8,23.1,44.2,0.10,0.02,9.80,1.0,-0.5,0.25,12.0,-13.0,14.0,125.5,-65,12";
+        const string packetWith3dFix = "20,123500,2,10,48.2090,16.3750,260.0,258.5,1011.8,23.1,44.2,0.10,0.02,9.80,1.0,-0.5,0.25,12.0,-13.0,14.0,125.5,-65,12";
+
+        Assert.True(ProcessedPacket.TryParse(packetWithoutFix, out var noFixPacket));
+        vm.UpdateWithPacket(noFixPacket);
+        Assert.Equal(0, vm.GpsFix);
+        Assert.Equal("No Fix", vm.GpsFixStatus);
+
+        Assert.True(ProcessedPacket.TryParse(packetWith3dFix, out var fix3dPacket));
+        vm.UpdateWithPacket(fix3dPacket);
+        Assert.Equal(2, vm.GpsFix);
+        Assert.Equal("3D Fix (10 Sats)", vm.GpsFixStatus);
+    }
+
+    [Fact]
     public void MainViewModel_UpdateWithForecast_UpdatesTrajectoryList()
     {
         var vm = new MainViewModel();
-        var raw = "20,123500,1,10,48.2090,16.3750,260.0,258.5,23.1,1011.8,44.2,0.10,0.02,9.80,-65,12";
+        var raw = "20,123500,1,10,48.2090,16.3750,260.0,258.5,1011.8,23.1,44.2,0.10,0.02,9.80,1.0,-0.5,0.25,12.0,-13.0,14.0,125.5,-65,12";
         Assert.True(ProcessedPacket.TryParse(raw, out var packet));
 
         var measurement = V.Dense([48.2090, 16.3750, 260.0]);
@@ -255,7 +291,7 @@ public class TelemetryTests
         };
 
         // Send a raw packet directly through subscription channel
-        var rawPacket = "1,120000,1,8,48.2090,16.3750,260.0,258.5,23.1,1011.8,44.2,0.10,0.02,9.80,-65,12\n";
+        var rawPacket = "1,120000,1,8,48.2090,16.3750,260.0,258.5,1011.8,23.1,44.2,0.10,0.02,9.80,1.0,-0.5,0.25,12.0,-13.0,14.0,125.5,-65,12\n";
         var bytes = Encoding.UTF8.GetBytes(rawPacket);
 
         station.Start();
@@ -265,7 +301,7 @@ public class TelemetryTests
         // We can verify station properties and forecast math
         var parsed = ProcessedPacket.TryParse(rawPacket, out var pkt);
         Assert.True(parsed);
-        Assert.True(pkt.GPSFix);
+        Assert.Equal(1, pkt.GPSFix);
 
         // We can also verify that ProcessedPacket has correct position values
         Assert.Equal(48.2090, pkt.Latitude, precision: 4);

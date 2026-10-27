@@ -18,8 +18,8 @@
 
     <Window.Styles>
         <Style Selector="Window">
-            <Setter Property="Background" Value="{DynamicResource App.BackgroundBrush}"/>
-            <Setter Property="Foreground" Value="{DynamicResource App.ForegroundBrush}"/>
+            <Setter Property="Background" Value="{DynamicResource App.BackgroundBrush}" />
+            <Setter Property="Foreground" Value="{DynamicResource App.ForegroundBrush}" />
         </Style>
         <Style Selector="Border.card">
             <!-- <Setter Property="Background"> -->
@@ -68,29 +68,30 @@
         <Border Grid.Row="0" Classes="card" Margin="6,0,6,8" Padding="12,10">
             <Grid ColumnDefinitions="Auto, *, Auto">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                    <TextBlock Text="CanSat Ground Station" FontSize="20" FontWeight="Bold" VerticalAlignment="Center" Foreground="{DynamicResource App.ForegroundBrush}" />
-                    <Border Classes="badge" Background="#2E7D32" IsVisible="{Binding GpsFix}">
-                        <TextBlock Text="{Binding GpsFixStatus}" Foreground="{DynamicResource App.ForegroundBrush}" FontWeight="SemiBold" FontSize="12" />
-                    </Border>
-                    <Border Classes="badge" Background="#C62828" IsVisible="{Binding !GpsFix}">
-                        <TextBlock Text="No GPS Fix" Foreground="{DynamicResource App.ForegroundBrush}" FontWeight="SemiBold" FontSize="12" />
+                    <TextBlock Text="CanSat Ground Station" FontSize="20" FontWeight="Bold" VerticalAlignment="Center"
+                               Foreground="{DynamicResource App.ForegroundBrush}" />
+                    <Border Classes="badge" Background="#455A64">
+                        <TextBlock Text="{Binding GpsFixStatus}" Foreground="{DynamicResource App.ForegroundBrush}"
+                                   FontWeight="SemiBold" FontSize="12" />
                     </Border>
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                         <TextBlock Text="Mission Time:" Classes="label" />
-                        <TextBlock Text="{Binding TimeSinceStart, StringFormat='T+{0} s'}" FontWeight="Bold" FontSize="14" Foreground="White"/>
+                        <TextBlock Text="{Binding TimeSinceStart, StringFormat='T+{0} s'}" FontWeight="Bold"
+                                   FontSize="14" Foreground="White" />
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                         <TextBlock Text="GPS UTC:" Classes="label" />
-                        <TextBlock Text="{Binding GpsTimeFormatted}" FontWeight="SemiBold" FontSize="13" Foreground="White"/>
+                        <TextBlock Text="{Binding GpsTimeFormatted}" FontWeight="SemiBold" FontSize="13"
+                                   Foreground="White" />
                     </StackPanel>
 
                     <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
                         <TextBlock Text="Signal:" Classes="label" />
-                        <TextBlock Text="{Binding SignalStatus}" FontWeight="SemiBold" FontSize="13" Foreground="White"/>
+                        <TextBlock Text="{Binding SignalStatus}" FontWeight="SemiBold" FontSize="13" Foreground="White" />
                     </StackPanel>
                 </StackPanel>
             </Grid>
@@ -102,27 +103,41 @@
             <TabItem Header="Dashboard">
                 <Grid ColumnDefinitions="*, *" Margin="0,8,0,0">
                     <!-- Left Column: Primary Telemetry Data Cards -->
-                    <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Disabled"
+                                  VerticalScrollBarVisibility="Auto">
                         <StackPanel Spacing="4">
                             <!-- GPS & Navigation Card -->
                             <Border Classes="card">
                                 <StackPanel Spacing="8">
                                     <TextBlock Text="Position &amp; Navigation" Classes="header" />
-                                    <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto, Auto, Auto" Margin="0,0,0,0">
+                                    <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto, Auto, Auto"
+                                          Margin="0,0,0,0">
                                         <TextBlock Grid.Row="0" Grid.Column="0" Text="Latitude" Classes="label" />
-                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Latitude, StringFormat='{}{0:F5}°'}" Classes="value" Foreground="White"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="1"
+                                                   Text="{Binding Latitude, StringFormat='{}{0:F5}°'}" Classes="value"
+                                                   Foreground="White" />
 
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Longitude" Classes="label" Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Longitude, StringFormat='{}{0:F5}°'}" Classes="value" Margin="0,6,0,0" Foreground="White"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Longitude" Classes="label"
+                                                   Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="1" Grid.Column="1"
+                                                   Text="{Binding Longitude, StringFormat='{}{0:F5}°'}" Classes="value"
+                                                   Margin="0,6,0,0" Foreground="White" />
 
-                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="GPS Altitude" Classes="label" Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding GpsAltitude, StringFormat='{}{0:F1} m'}" Classes="value" Margin="0,6,0,0" Foreground="White"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="GPS Altitude" Classes="label"
+                                                   Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="2" Grid.Column="1"
+                                                   Text="{Binding GpsAltitude, StringFormat='{}{0:F1} m'}"
+                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
 
-                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Satellites Tracked" Classes="label" Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SatelliteCount}" Classes="value" Margin="0,6,0,0" Foreground="White"/>
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Satellites Tracked"
+                                                   Classes="label" Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SatelliteCount}"
+                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
 
-                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Fix Status" Classes="label" Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding GpsFixStatus}" Classes="value" Margin="0,6,0,0" Foreground="White"/>
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Fix Status" Classes="label"
+                                                   Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding GpsFixStatus}"
+                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -132,17 +147,29 @@
                                 <StackPanel Spacing="8">
                                     <TextBlock Text="Atmospheric Telemetry" Classes="header" />
                                     <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto, Auto">
-                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Barometric Altitude" Classes="label" />
-                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding AltitudeBarometer, StringFormat='{}{0:F1} m'}" Classes="value" Foreground="White"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Barometric Altitude"
+                                                   Classes="label" />
+                                        <TextBlock Grid.Row="0" Grid.Column="1"
+                                                   Text="{Binding AltitudeBarometer, StringFormat='{}{0:F1} m'}"
+                                                   Classes="value" Foreground="White" />
 
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Temperature" Classes="label" Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Temperature, StringFormat='{}{0:F1} °C'}" Classes="value" Margin="0,6,0,0" Foreground="White"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Temperature" Classes="label"
+                                                   Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="1" Grid.Column="1"
+                                                   Text="{Binding Temperature, StringFormat='{}{0:F1} °C'}"
+                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
 
-                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Pressure" Classes="label" Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Pressure, StringFormat='{}{0:F2} hPa'}" Classes="value" Margin="0,6,0,0" Foreground="White"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Pressure" Classes="label"
+                                                   Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="2" Grid.Column="1"
+                                                   Text="{Binding Pressure, StringFormat='{}{0:F2} hPa'}"
+                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
 
-                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Humidity" Classes="label" Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Humidity, StringFormat='{}{0:F1} %'}" Classes="value" Margin="0,6,0,0" Foreground="White"/>
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Humidity" Classes="label"
+                                                   Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="3" Grid.Column="1"
+                                                   Text="{Binding Humidity, StringFormat='{}{0:F1} %'}" Classes="value"
+                                                   Margin="0,6,0,0" Foreground="White" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -152,17 +179,80 @@
                                 <StackPanel Spacing="8">
                                     <TextBlock Text="Motion &amp; Acceleration" Classes="header" />
                                     <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto, Auto">
-                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Total Magnitude" Classes="label" FontWeight="SemiBold" />
-                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding AccelerationMagnitude, StringFormat='{}{0:F2} m/s²'}" Classes="value" FontWeight="Bold" Foreground="White"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Total Magnitude" Classes="label"
+                                                   FontWeight="SemiBold" />
+                                        <TextBlock Grid.Row="0" Grid.Column="1"
+                                                   Text="{Binding AccelerationMagnitude, StringFormat='{}{0:F2} m/s²'}"
+                                                   Classes="value" FontWeight="Bold" Foreground="White" />
 
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Acceleration X" Classes="label" Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding AccelerationX, StringFormat='{}{0:F2} m/s²'}" Classes="value" Margin="0,6,0,0" Foreground="White"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Acceleration X" Classes="label"
+                                                   Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="1" Grid.Column="1"
+                                                   Text="{Binding AccelerationX, StringFormat='{}{0:F2} m/s²'}"
+                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
 
-                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Acceleration Y" Classes="label" Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding AccelerationY, StringFormat='{}{0:F2} m/s²'}" Classes="value" Margin="0,6,0,0" Foreground="White"/>
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Acceleration Y" Classes="label"
+                                                   Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="2" Grid.Column="1"
+                                                   Text="{Binding AccelerationY, StringFormat='{}{0:F2} m/s²'}"
+                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
 
-                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Acceleration Z" Classes="label" Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding AccelerationZ, StringFormat='{}{0:F2} m/s²'}" Classes="value" Margin="0,6,0,0" Foreground="White"/>
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Acceleration Z" Classes="label"
+                                                   Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="3" Grid.Column="1"
+                                                   Text="{Binding AccelerationZ, StringFormat='{}{0:F2} m/s²'}"
+                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
+                                    </Grid>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Angular Rate & Magnetic Field Card -->
+                            <Border Classes="card">
+                                <StackPanel Spacing="8">
+                                    <TextBlock Text="Angular Rate &amp; Magnetic Field" Classes="header" />
+                                    <Grid ColumnDefinitions="*, Auto"
+                                          RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto">
+                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Angular velocity X"
+                                                   Classes="label" />
+                                        <TextBlock Grid.Row="0" Grid.Column="1"
+                                                   Text="{Binding OmegaXDegreesPerSecond, StringFormat='{}{0:F2} °/s'}"
+                                                   Classes="value" Foreground="White" />
+
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Angular velocity Y"
+                                                   Classes="label" Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="1" Grid.Column="1"
+                                                   Text="{Binding OmegaYDegreesPerSecond, StringFormat='{}{0:F2} °/s'}"
+                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
+
+                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Angular velocity Z"
+                                                   Classes="label" Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="2" Grid.Column="1"
+                                                   Text="{Binding OmegaZDegreesPerSecond, StringFormat='{}{0:F2} °/s'}"
+                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
+
+                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Magnetic field X" Classes="label"
+                                                   Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="3" Grid.Column="1"
+                                                   Text="{Binding MagneticFieldX, StringFormat='{}{0:F2} µT'}"
+                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
+
+                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Magnetic field Y" Classes="label"
+                                                   Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="4" Grid.Column="1"
+                                                   Text="{Binding MagneticFieldY, StringFormat='{}{0:F2} µT'}"
+                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
+
+                                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Magnetic field Z" Classes="label"
+                                                   Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="5" Grid.Column="1"
+                                                   Text="{Binding MagneticFieldZ, StringFormat='{}{0:F2} µT'}"
+                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
+
+                                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Azimuth (Theta)" Classes="label"
+                                                   Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="6" Grid.Column="1"
+                                                   Text="{Binding Theta, StringFormat='{}{0:F2} °'}" Classes="value"
+                                                   Margin="0,6,0,0" Foreground="White" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -173,10 +263,15 @@
                                     <TextBlock Text="Radio &amp; Link" Classes="header" />
                                     <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto">
                                         <TextBlock Grid.Row="0" Grid.Column="0" Text="RSSI" Classes="label" />
-                                        <TextBlock Grid.Row="0" Grid.Column="1" Text="{Binding Rssi, StringFormat='{}{0:F0} dBm'}" Classes="value" Foreground="White"/>
+                                        <TextBlock Grid.Row="0" Grid.Column="1"
+                                                   Text="{Binding Rssi, StringFormat='{}{0:F0} dBm'}" Classes="value"
+                                                   Foreground="White" />
 
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Signal-to-Noise Ratio (SNR)" Classes="label" Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Snr, StringFormat='{}{0:F0} dB'}" Classes="value" Margin="0,6,0,0" Foreground="White"/>
+                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Signal-to-Noise Ratio (SNR)"
+                                                   Classes="label" Margin="0,6,0,0" />
+                                        <TextBlock Grid.Row="1" Grid.Column="1"
+                                                   Text="{Binding Snr, StringFormat='{}{0:F0} dB'}" Classes="value"
+                                                   Margin="0,6,0,0" Foreground="White" />
                                     </Grid>
                                 </StackPanel>
                             </Border>
@@ -189,8 +284,11 @@
                         <Border Grid.Row="0" Classes="card">
                             <StackPanel Spacing="8">
                                 <Grid ColumnDefinitions="*, Auto">
-                                    <TextBlock Grid.Column="0" Text="Kalman 3D Trajectory Forecast" Classes="header" Margin="0" />
-                                    <TextBlock Grid.Column="1" Text="{Binding PredictedTrajectory.Count, StringFormat='{}{0} Steps Ahead'}" Classes="label" VerticalAlignment="Center" Foreground="White"/>
+                                    <TextBlock Grid.Column="0" Text="Kalman 3D Trajectory Forecast" Classes="header"
+                                               Margin="0" />
+                                    <TextBlock Grid.Column="1"
+                                               Text="{Binding PredictedTrajectory.Count, StringFormat='{}{0} Steps Ahead'}"
+                                               Classes="label" VerticalAlignment="Center" Foreground="White" />
                                 </Grid>
 
                                 <TextBlock Text="Awaiting GPS fix to generate trajectory prediction..."
@@ -202,8 +300,10 @@
                                               IsVisible="{Binding HasTrajectoryForecast}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:TrajectoryForecastItem">
-                                            <Border Margin="0,2" Padding="8,4" Background="{DynamicResource App.AccentBrush}" CornerRadius="4">
-                                                <TextBlock Text="{Binding DisplayText}" FontSize="12" FontFamily="Consolas,Cascadia Mono,DejaVu Sans Mono,monospace"/>
+                                            <Border Margin="0,2" Padding="8,4"
+                                                    Background="{DynamicResource App.AccentBrush}" CornerRadius="4">
+                                                <TextBlock Text="{Binding DisplayText}" FontSize="12"
+                                                           FontFamily="Consolas,Cascadia Mono,DejaVu Sans Mono,monospace" />
                                             </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
@@ -215,13 +315,14 @@
                         <Border Grid.Row="1" Classes="card" Margin="6,4,6,6">
                             <TabControl Margin="0" Padding="0">
                                 <TabItem Header="Parsed Telemetry" Foreground="{DynamicResource App.ForegroundBrush}">
-                                    <ScrollViewer Margin="0,8,0,0" HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto">
+                                    <ScrollViewer Margin="0,8,0,0" HorizontalScrollBarVisibility="Auto"
+                                                  VerticalScrollBarVisibility="Auto">
                                         <TextBlock Text="{Binding FormattedTelemetry}"
                                                    FontFamily="Consolas,Cascadia Mono,DejaVu Sans Mono,monospace"
                                                    FontSize="13"
                                                    LineHeight="20"
                                                    Foreground="{DynamicResource App.ForegroundBrush}"
-                                                   Background="{DynamicResource App.CardBackground}"/>
+                                                   Background="{DynamicResource App.CardBackground}" />
                                     </ScrollViewer>
                                 </TabItem>
                                 <TabItem Header="Packet History" Foreground="{DynamicResource App.ForegroundBrush}">
@@ -245,29 +346,39 @@
 
             <!-- Settings Tab -->
             <TabItem Header="Settings">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto" Margin="0,8,0,0">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
+                              Margin="0,8,0,0">
                     <StackPanel Spacing="10" MaxWidth="850" HorizontalAlignment="Left" Margin="6,0">
                         <!-- Network & Telemetry Settings Card -->
                         <Border Classes="card">
                             <StackPanel Spacing="10">
                                 <TextBlock Text="Network &amp; Telemetry Stream Configuration" Classes="header" />
-                                <TextBlock Text="Configure the UDP multicast connection and telemetry log destination. Settings are saved to disk and preserved across application sessions."
-                                           Classes="label"
-                                           TextWrapping="Wrap"
-                                           Margin="0,0,0,6" />
+                                <TextBlock
+                                    Text="Configure the UDP multicast connection and telemetry log destination. Settings are saved to disk and preserved across application sessions."
+                                    Classes="label"
+                                    TextWrapping="Wrap"
+                                    Margin="0,0,0,6" />
 
                                 <Grid ColumnDefinitions="200, *" RowDefinitions="Auto, Auto, Auto, Auto">
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Local Ethernet IP" Classes="label" VerticalAlignment="Center" />
-                                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding SettingLocalEthIp}" Margin="0,3" PlaceholderText="e.g. 10.1.1.91" />
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Local Ethernet IP" Classes="label"
+                                               VerticalAlignment="Center" />
+                                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding SettingLocalEthIp}"
+                                             Margin="0,3" PlaceholderText="e.g. 10.1.1.91" />
 
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Multicast Group" Classes="label" VerticalAlignment="Center" Margin="0,6,0,0" />
-                                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SettingMulticastGroup}" Margin="0,6,0,0" PlaceholderText="e.g. 239.255.1.1" />
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Multicast Group" Classes="label"
+                                               VerticalAlignment="Center" Margin="0,6,0,0" />
+                                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SettingMulticastGroup}"
+                                             Margin="0,6,0,0" PlaceholderText="e.g. 239.255.1.1" />
 
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="UDP Port" Classes="label" VerticalAlignment="Center" Margin="0,6,0,0" />
-                                    <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding SettingPort}" Minimum="1" Maximum="65535" FormatString="0" Margin="0,6,0,0" />
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="UDP Port" Classes="label"
+                                               VerticalAlignment="Center" Margin="0,6,0,0" />
+                                    <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding SettingPort}"
+                                                   Minimum="1" Maximum="65535" FormatString="0" Margin="0,6,0,0" />
 
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Telemetry Log File" Classes="label" VerticalAlignment="Center" Margin="0,6,0,0" />
-                                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding SettingLogFile}" Margin="0,6,0,0" PlaceholderText="e.g. telemetry.csv" />
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Telemetry Log File" Classes="label"
+                                               VerticalAlignment="Center" Margin="0,6,0,0" />
+                                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding SettingLogFile}"
+                                             Margin="0,6,0,0" PlaceholderText="e.g. telemetry.csv" />
                                 </Grid>
                             </StackPanel>
                         </Border>
@@ -276,23 +387,35 @@
                         <Border Classes="card">
                             <StackPanel Spacing="10">
                                 <TextBlock Text="Kalman Filter &amp; Trajectory Forecast Parameters" Classes="header" />
-                                <TextBlock Text="Configure Kalman state estimation. The initial position is dynamically initialized from the first valid GPS packet."
-                                           Classes="label"
-                                           TextWrapping="Wrap"
-                                           Margin="0,0,0,6" />
+                                <TextBlock
+                                    Text="Configure Kalman state estimation. The initial position is dynamically initialized from the first valid GPS packet."
+                                    Classes="label"
+                                    TextWrapping="Wrap"
+                                    Margin="0,0,0,6" />
 
                                 <Grid ColumnDefinitions="200, *" RowDefinitions="Auto, Auto, Auto, Auto">
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Delta T (seconds)" Classes="label" VerticalAlignment="Center" />
-                                    <NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding SettingDeltaT}" Minimum="0.01" Maximum="60" Increment="0.1" FormatString="0.00" Margin="0,3" />
+                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Delta T (seconds)" Classes="label"
+                                               VerticalAlignment="Center" />
+                                    <NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding SettingDeltaT}"
+                                                   Minimum="0.01" Maximum="60" Increment="0.1" FormatString="0.00"
+                                                   Margin="0,3" />
 
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Measurement Std Dev" Classes="label" VerticalAlignment="Center" Margin="0,6,0,0" />
-                                    <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding SettingMeasStd}" Minimum="0.00001" Maximum="10" Increment="0.001" FormatString="0.0000" Margin="0,6,0,0" />
+                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Measurement Std Dev" Classes="label"
+                                               VerticalAlignment="Center" Margin="0,6,0,0" />
+                                    <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding SettingMeasStd}"
+                                                   Minimum="0.00001" Maximum="10" Increment="0.001"
+                                                   FormatString="0.0000" Margin="0,6,0,0" />
 
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Acceleration Std Dev" Classes="label" VerticalAlignment="Center" Margin="0,6,0,0" />
-                                    <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding SettingAccelStd}" Minimum="0.00001" Maximum="10" Increment="0.001" FormatString="0.0000" Margin="0,6,0,0" />
+                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Acceleration Std Dev" Classes="label"
+                                               VerticalAlignment="Center" Margin="0,6,0,0" />
+                                    <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding SettingAccelStd}"
+                                                   Minimum="0.00001" Maximum="10" Increment="0.001"
+                                                   FormatString="0.0000" Margin="0,6,0,0" />
 
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Prediction Steps Ahead" Classes="label" VerticalAlignment="Center" Margin="0,6,0,0" />
-                                    <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding SettingStepsToPredict}" Minimum="1" Maximum="100" FormatString="0" Margin="0,6,0,0" />
+                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Prediction Steps Ahead"
+                                               Classes="label" VerticalAlignment="Center" Margin="0,6,0,0" />
+                                    <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding SettingStepsToPredict}"
+                                                   Minimum="1" Maximum="100" FormatString="0" Margin="0,6,0,0" />
                                 </Grid>
                             </StackPanel>
                         </Border>
@@ -332,18 +455,20 @@
         <Border Grid.Row="2" Classes="card" Margin="6,8,6,0" Padding="12,6">
             <Grid ColumnDefinitions="Auto, *, Auto">
                 <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="Status:" Classes="label"/>
-                    <TextBlock Text="{Binding ConnectionStatus}" FontWeight="Medium" FontSize="12" Foreground="White"/>
+                    <TextBlock Text="Status:" Classes="label" />
+                    <TextBlock Text="{Binding ConnectionStatus}" FontWeight="Medium" FontSize="12" Foreground="White" />
                 </StackPanel>
 
                 <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="16">
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <TextBlock Text="Total Packets:" Classes="label" />
-                        <TextBlock Text="{Binding TotalPacketsReceived}" FontWeight="Bold" FontSize="12" Foreground="White"/>
+                        <TextBlock Text="{Binding TotalPacketsReceived}" FontWeight="Bold" FontSize="12"
+                                   Foreground="White" />
                     </StackPanel>
                     <StackPanel Orientation="Horizontal" Spacing="6">
                         <TextBlock Text="Last Packet:" Classes="label" />
-                        <TextBlock Text="{Binding LastPacketTimeString}" FontWeight="Medium" FontSize="12" Foreground="White"/>
+                        <TextBlock Text="{Binding LastPacketTimeString}" FontWeight="Medium" FontSize="12"
+                                   Foreground="White" />
                     </StackPanel>
                 </StackPanel>
             </Grid>

@@ -10,11 +10,13 @@ namespace CanSatGSUI.ViewModels;
 
 public record TrajectoryForecastItem(int Step, double DeltaSeconds, double Latitude, double Longitude, double Altitude)
 {
-    public string DisplayText => $"Step +{Step} (+{DeltaSeconds:F1}s): Lat {Latitude.ToString("F5", CultureInfo.InvariantCulture)}°, Lon {Longitude.ToString("F5", CultureInfo.InvariantCulture)}°, Alt {Altitude.ToString("F1", CultureInfo.InvariantCulture)} m";
+    public string DisplayText =>
+        $"Step +{Step} (+{DeltaSeconds:F1}s): Lat {Latitude.ToString("F5", CultureInfo.InvariantCulture)}°, Lon {Longitude.ToString("F5", CultureInfo.InvariantCulture)}°, Alt {Altitude.ToString("F1", CultureInfo.InvariantCulture)} m";
 }
 
 public partial class MainViewModel : ViewModelBase, IDisposable
 {
+    private const double RadiansToDegrees = 180.0 / Math.PI;
     private CanSatGroundStation.CanSatGroundStation? _groundStation;
     private readonly IAppLogger _logger;
     private bool _disposed;
@@ -32,7 +34,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty] public partial string GpsTimeFormatted { get; set; } = "--:--:--";
 
     // GPS & Navigation
-    [ObservableProperty] public partial bool GpsFix { get; set; }
+    [ObservableProperty] public partial int GpsFix { get; set; }
     [ObservableProperty] public partial string GpsFixStatus { get; set; } = "No Fix";
     [ObservableProperty] public partial int SatelliteCount { get; set; }
     [ObservableProperty] public partial double Latitude { get; set; }
@@ -50,6 +52,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty] public partial float AccelerationY { get; set; }
     [ObservableProperty] public partial float AccelerationZ { get; set; }
     [ObservableProperty] public partial double AccelerationMagnitude { get; set; }
+    [ObservableProperty] public partial double OmegaXDegreesPerSecond { get; set; }
+    [ObservableProperty] public partial double OmegaYDegreesPerSecond { get; set; }
+    [ObservableProperty] public partial double OmegaZDegreesPerSecond { get; set; }
+    [ObservableProperty] public partial float MagneticFieldX { get; set; }
+    [ObservableProperty] public partial float MagneticFieldY { get; set; }
+    [ObservableProperty] public partial float MagneticFieldZ { get; set; }
+    [ObservableProperty] public partial float Theta { get; set; }
 
     // RF & Signal
     [ObservableProperty] public partial float Rssi { get; set; }
@@ -91,8 +100,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         TimeSinceStart = 42;
         GpsTimeUtc = 123456;
         GpsTimeFormatted = "12:34:56 UTC";
-        GpsFix = true;
-        GpsFixStatus = "Fixed (9 Sats)";
+        GpsFix = 2;
+        GpsFixStatus = "3D Fix (9 Sats)";
         SatelliteCount = 9;
         Latitude = 48.2082;
         Longitude = 16.3738;
@@ -105,12 +114,20 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         AccelerationY = -0.05f;
         AccelerationZ = 9.81f;
         AccelerationMagnitude = 9.81;
+        OmegaXDegreesPerSecond = 5.73;
+        OmegaYDegreesPerSecond = -11.46;
+        OmegaZDegreesPerSecond = 17.19;
+        MagneticFieldX = 12.0f;
+        MagneticFieldY = -13.0f;
+        MagneticFieldZ = 14.0f;
+        Theta = 125.5f;
         Rssi = -68f;
         Snr = 10f;
         SignalStatus = "-68 dBm (SNR: 10 dB)";
         HasData = true;
         TotalPacketsReceived = 1;
-        FormattedTelemetry = "Time since start : 42 s\nGPS time (UTC)   : 123456\nGPS fix          : Yes\nSatellites       : 9\nLatitude         : 48.20820\nLongitude        : 16.37380\nGPS altitude     : 250.5 m\nBarometer alt    : 248.2 m\nTemperature      : 22.4 C\nPressure         : 1012.30 hPa\nHumidity         : 45.0 %\nAcceleration X   : 0.12 m/s^2\nAcceleration Y   : -0.05 m/s^2\nAcceleration Z   : 9.81 m/s^2\nRSSI             : -68 dBm\nSNR              : 10 dB";
+        FormattedTelemetry =
+            "Time since start : 42 s\nGPS time (UTC)   : 123456\nGPS fix          : 2 (3D)\nSatellites       : 9\nLatitude         : 48.20820\nLongitude        : 16.37380\nGPS altitude     : 250.5 m\nBarometer alt    : 248.2 m\nTemperature      : 22.4 C\nPressure         : 1012.30 hPa\nHumidity         : 45.0 %\nAcceleration X   : 0.12 m/s^2\nAcceleration Y   : -0.05 m/s^2\nAcceleration Z   : 9.81 m/s^2\nAngularV X       : 5.73 °/s\nAngularV Y       : -11.46 °/s\nAngularV Z       : 17.19 °/s\nMagnetic field X : 12.00 uT\nMagnetic field Y : -13.00 uT\nMagnetic field Z : 14.00 uT\nAzimuth          : 125.50 deg\nRSSI             : -68 dBm\nSNR              : 10 dB";
 
         PredictedTrajectory.Add(new TrajectoryForecastItem(1, 1.0, 48.2083, 16.3739, 252.0));
         PredictedTrajectory.Add(new TrajectoryForecastItem(2, 2.0, 48.2084, 16.3740, 253.5));
@@ -118,7 +135,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         HasTrajectoryForecast = true;
     }
 
-    public MainViewModel(CanSatGroundStation.CanSatGroundStation groundStation, AppSettings? settings = null, IAppLogger? logger = null)
+    public MainViewModel(CanSatGroundStation.CanSatGroundStation groundStation, AppSettings? settings = null,
+        IAppLogger? logger = null)
     {
         _groundStation = groundStation ?? throw new ArgumentNullException(nameof(groundStation));
         _logger = logger ?? NullAppLogger.Instance;
@@ -195,8 +213,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 _groundStation = null;
             }
 
-            var engine = new TelemetryEngine(Settings.LocalEthIp, Settings.MulticastGroup, Settings.Port, Settings.LogFile, _logger);
-            _groundStation = new CanSatGroundStation.CanSatGroundStation(engine, Settings.DeltaT, Settings.MeasStd, Settings.AccelStd, _logger, Settings.StepsToPredict);
+            var engine = new TelemetryEngine(Settings.LocalEthIp, Settings.MulticastGroup, Settings.Port,
+                Settings.LogFile, _logger);
+            _groundStation = new CanSatGroundStation.CanSatGroundStation(engine, Settings.DeltaT, Settings.MeasStd,
+                Settings.AccelStd, _logger, Settings.StepsToPredict);
             _groundStation.PacketReceived += OnPacketReceived;
             _groundStation.ForecastUpdated += OnForecastUpdated;
 
@@ -239,7 +259,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         GpsTimeFormatted = $"{hours:D2}:{minutes:D2}:{seconds:D2} UTC";
 
         GpsFix = packet.GPSFix;
-        GpsFixStatus = packet.GPSFix ? $"Fixed ({packet.SatelliteCount} Sats)" : "No Fix";
+        GpsFixStatus = packet.GPSFix switch
+        {
+            0 => "No Fix",
+            1 => $"2D Fix ({packet.SatelliteCount} Sats)",
+            2 => $"3D Fix ({packet.SatelliteCount} Sats)",
+            _ => $"Unknown Fix ({packet.GPSFix})"
+        };
         SatelliteCount = packet.SatelliteCount;
         Latitude = packet.Latitude;
         Longitude = packet.Longitude;
@@ -247,7 +273,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
         AltitudeBarometer = packet.AltitudeBarometer;
         Temperature = packet.Temperature;
-        Pressure = packet.Pressure;
+        Pressure = packet.PressureBarometer;
         Humidity = packet.Humidity;
 
         AccelerationX = packet.AccelerationX;
@@ -257,6 +283,13 @@ public partial class MainViewModel : ViewModelBase, IDisposable
             packet.AccelerationX * packet.AccelerationX +
             packet.AccelerationY * packet.AccelerationY +
             packet.AccelerationZ * packet.AccelerationZ);
+        OmegaXDegreesPerSecond = packet.OmegaX * RadiansToDegrees;
+        OmegaYDegreesPerSecond = packet.OmegaY * RadiansToDegrees;
+        OmegaZDegreesPerSecond = packet.OmegaZ * RadiansToDegrees;
+        MagneticFieldX = packet.MagneticFieldX;
+        MagneticFieldY = packet.MagneticFieldY;
+        MagneticFieldZ = packet.MagneticFieldZ;
+        Theta = packet.Theta;
 
         Rssi = packet.RSSI;
         Snr = packet.SNR;
@@ -267,7 +300,8 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         TotalPacketsReceived++;
         HasData = true;
 
-        var logEntry = $"[{LastPacketTimeString}] T+{packet.TimeSinceStart}s | Alt: {packet.AltitudeBarometer:F1}m | Temp: {packet.Temperature:F1}°C | Press: {packet.Pressure:F1}hPa | RSSI: {packet.RSSI:F0}dBm";
+        var logEntry =
+            $"[{LastPacketTimeString}] T+{packet.TimeSinceStart}s | Alt: {packet.AltitudeBarometer:F1}m | Temp: {packet.Temperature:F1}°C | Press: {packet.PressureBarometer:F1}hPa | RSSI: {packet.RSSI:F0}dBm";
         PacketHistory.Insert(0, logEntry);
         if (PacketHistory.Count > 500) PacketHistory.RemoveAt(PacketHistory.Count - 1);
 
@@ -290,6 +324,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
                 Altitude: p[2]
             ));
         }
+
         HasTrajectoryForecast = PredictedTrajectory.Count > 0;
     }
 
