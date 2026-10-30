@@ -1,0 +1,99 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:CanSatGSUI.ViewModels"
+             xmlns:scottplot="using:ScottPlot.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="700"
+             x:Class="CanSatGSUI.Views.TelemetryChartsView"
+             x:DataType="vm:MainViewModel">
+
+    <UserControl.Styles>
+        <Style Selector="scottplot|AvaPlot">
+            <Setter Property="Height" Value="230" />
+        </Style>
+    </UserControl.Styles>
+
+    <Grid RowDefinitions="Auto, *" Margin="0,8,0,0">
+        <!-- Toolbar -->
+        <Border Grid.Row="0" Classes="card" Padding="12,8">
+            <Grid ColumnDefinitions="*, Auto">
+                <TextBlock Grid.Column="0" Classes="label" TextWrapping="Wrap"
+                           Text="Mouse wheel zooms, left-drag pans, middle-click fits a chart. Untick 'Follow live data' to keep your zoom while packets arrive." />
+                <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="12" Margin="12,0,0,0">
+                    <CheckBox x:Name="FollowLiveCheckBox" IsChecked="True" Content="Follow live data"
+                              ToolTip.Tip="When on, every chart rescales to show all data after each update." />
+                    <Button Content="Fit all" Click="OnFitAllClick" Padding="12,6" CornerRadius="6" />
+                    <Button Content="Clear graphs" Command="{Binding ClearGraphsCommand}" Padding="12,6"
+                            CornerRadius="6" />
+                </StackPanel>
+            </Grid>
+        </Border>
+
+        <!-- Charts: one per measurement -->
+        <ScrollViewer Grid.Row="1" HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+            <UniformGrid Columns="2">
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Text="Altitude" Classes="header" />
+                        <scottplot:AvaPlot x:Name="AltitudePlot" />
+                    </StackPanel>
+                </Border>
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Text="Temperature" Classes="header" />
+                        <scottplot:AvaPlot x:Name="TemperaturePlot" />
+                    </StackPanel>
+                </Border>
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Text="Pressure" Classes="header" />
+                        <scottplot:AvaPlot x:Name="PressurePlot" />
+                    </StackPanel>
+                </Border>
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Text="Humidity" Classes="header" />
+                        <scottplot:AvaPlot x:Name="HumidityPlot" />
+                    </StackPanel>
+                </Border>
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Text="Acceleration" Classes="header" />
+                        <scottplot:AvaPlot x:Name="AccelerationPlot" />
+                    </StackPanel>
+                </Border>
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Text="Angular Velocity" Classes="header" />
+                        <scottplot:AvaPlot x:Name="AngularVelocityPlot" />
+                    </StackPanel>
+                </Border>
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Text="Magnetic Field" Classes="header" />
+                        <scottplot:AvaPlot x:Name="MagneticFieldPlot" />
+                    </StackPanel>
+                </Border>
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Text="Azimuth (Theta)" Classes="header" />
+                        <scottplot:AvaPlot x:Name="AzimuthPlot" />
+                    </StackPanel>
+                </Border>
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Text="RSSI" Classes="header" />
+                        <scottplot:AvaPlot x:Name="RssiPlot" />
+                    </StackPanel>
+                </Border>
+                <Border Classes="card">
+                    <StackPanel>
+                        <TextBlock Text="Signal-to-Noise Ratio" Classes="header" />
+                        <scottplot:AvaPlot x:Name="SnrPlot" />
+                    </StackPanel>
+                </Border>
+            </UniformGrid>
+        </ScrollViewer>
+    </Grid>
+</UserControl>
