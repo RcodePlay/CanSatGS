@@ -341,4 +341,69 @@ public class TelemetryTests
         Assert.Equal("Stopped", vm.ConnectionStatus);
         if (File.Exists("test_vm_telemetry.csv")) File.Delete("test_vm_telemetry.csv");
     }
+
+    [Fact]
+    public void MainViewModel_UpdateWithPacket_AppendsToHistory()
+    {
+        var vm = new MainViewModel();
+        var raw = "20,123500,1,10,48.2090,16.3750,260.0,258.5,1011.8,23.1,44.2,3.0,0.0,4.0,1.0,-0.5,0.25,12.0,-13.0,14.0,125.5,-65,12";
+        Assert.True(ProcessedPacket.TryParse(raw, out var packet));
+
+        vm.UpdateWithPacket(packet);
+
+        var h = vm.History;
+        Assert.Equal(1, h.Count);
+        Assert.Equal(20, h.Time[0]);
+        Assert.Equal(260.0, h.GpsAltitude[0], precision: 1);
+        Assert.Equal(258.5, h.BaroAltitude[0], precision: 1);
+        Assert.Equal(23.1, h.Temperature[0], precision: 1);
+        Assert.Equal(1011.8, h.Pressure[0], precision: 1);
+        Assert.Equal(44.2, h.Humidity[0], precision: 1);
+        Assert.Equal(5.0, h.AccelMagnitude[0], precision: 5);
+        Assert.Equal(1.0 * (180.0 / Math.PI), h.OmegaX[0], precision: 4);
+        Assert.Equal(-13.0, h.MagY[0], precision: 1);
+        Assert.Equal(125.5, h.Theta[0], precision: 1);
+        Assert.Equal(-65, h.Rssi[0], precision: 0);
+        Assert.Equal(12, h.Snr[0], precision: 0);
+    }
+
+    [Fact]
+    public void MainViewModel_ClearGraphs_EmptiesHistory()
+    {
+        var vm = new MainViewModel();
+        var raw = "20,123500,1,10,48.2090,16.3750,260.0,258.5,1011.8,23.1,44.2,0.10,0.02,9.80,1.0,-0.5,0.25,12.0,-13.0,14.0,125.5,-65,12";
+        Assert.True(ProcessedPacket.TryParse(raw, out var packet));
+        vm.UpdateWithPacket(packet);
+        vm.UpdateWithPacket(packet);
+        var generation = vm.History.Generation;
+
+        vm.ClearGraphs();
+
+        Assert.Equal(0, vm.History.Count);
+        Assert.Empty(vm.History.Temperature);
+        Assert.NotEqual(generation, vm.History.Generation);
+    }
+
+    [Fact]
+    public void TelemetryHistory_Add_TrimsOldestPointsAtCap()
+    {
+        var history = new TelemetryHistory(maxPoints: 10);
+        var changes = 0;
+        history.Changed += () => changes++;
+
+        for (var t = 0; t < 25; t++)
+        {
+            var raw = $"{t},123500,1,10,48.2090,16.3750,260.0,258.5,1011.8,{t},44.2,0.10,0.02,9.80,1.0,-0.5,0.25,12.0,-13.0,14.0,125.5,-65,12";
+            Assert.True(ProcessedPacket.TryParse(raw, out var packet));
+            history.Add(packet);
+            Assert.InRange(history.Count, 1, 10);
+            Assert.Equal(history.Count, history.Temperature.Count);
+            Assert.Equal(history.Count, history.Snr.Count);
+        }
+
+        Assert.Equal(25, changes);
+        Assert.True(history.Generation > 0);
+        Assert.Equal(24, history.Time[^1]);            // newest point kept
+        Assert.Equal(history.Time[0], history.Temperature[0]); // lists stay aligned after trimming
+    }
 }

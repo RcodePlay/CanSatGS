@@ -85,6 +85,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     public ObservableCollection<string> Lines { get; } = [];
     public ObservableCollection<string> PacketHistory { get; } = [];
 
+    /// <summary>All received measurements over time, shown in the Graphs tab.</summary>
+    public TelemetryHistory History { get; } = new();
+
     public AppSettings Settings { get; }
 
     /// <summary>
@@ -307,6 +310,14 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
         Lines.Insert(0, logEntry);
         if (Lines.Count > 500) Lines.RemoveAt(Lines.Count - 1);
+
+        History.Add(packet);
+    }
+
+    [RelayCommand]
+    public void ClearGraphs()
+    {
+        History.Clear();
     }
 
     public void UpdateWithForecast(TrajectoryForecast forecast)
