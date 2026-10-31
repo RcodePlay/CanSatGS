@@ -8,7 +8,7 @@
     </PropertyGroup>
 
     <ItemGroup>
-      <PackageReference Include="RcodePlay.3DKalman" Version="1.0.4" />
+      <PackageReference Include="RcodePlay.3DKalman" Version="1.0.6" />
     </ItemGroup>
 
 </Project>

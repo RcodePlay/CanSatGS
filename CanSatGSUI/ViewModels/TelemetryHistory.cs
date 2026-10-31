@@ -12,7 +12,7 @@ namespace CanSatGSUI.ViewModels;
 public sealed class TelemetryHistory
 {
     /// <summary>Safety cap so a station left running for many hours can't grow without limit.</summary>
-    public const int DefaultMaxPoints = 100_000;
+    private const int DefaultMaxPoints = 100_000;
 
     private const double RadiansToDegrees = 180.0 / Math.PI;
 
