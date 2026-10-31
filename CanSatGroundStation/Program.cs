@@ -9,6 +9,8 @@ using System.Text;
 using System.Threading.Channels;
 using _3DKalman;
 using MathNet.Numerics.LinearAlgebra;
+// ReSharper disable UnusedParameter.Global
+// ReSharper disable NotAccessedPositionalProperty.Global
 
 namespace CanSatGroundStation;
 
@@ -33,31 +35,31 @@ public readonly record struct TelemetryPacket(DateTime TimestampUtc, byte[] Data
 /// </summary>
 public readonly record struct ProcessedPacket
 {
-    public const int FieldCount = 23;
+    private const int FieldCount = 23;
 
-    public int TimeSinceStart { get; init; }
-    public int GPSTimeUTC { get; init; }
-    public int GPSFix { get; init; }
-    public int SatelliteCount { get; init; }
-    public double Latitude { get; init; }
-    public double Longitude { get; init; }
-    public double GPSAltitude { get; init; }
-    public float AltitudeBarometer { get; init; }
-    public float PressureBarometer { get; init; }
-    public float Temperature { get; init; }
-    public float Humidity { get; init; }
-    public float AccelerationX { get; init; }
-    public float AccelerationY { get; init; }
-    public float AccelerationZ { get; init; }
-    public float OmegaX { get; init; }
-    public float OmegaY { get; init; }
-    public float OmegaZ { get; init; }
-    public float MagneticFieldX { get; init; }
-    public float MagneticFieldY { get; init; }
-    public float MagneticFieldZ { get; init; }
-    public float Theta { get; init; }
-    public float RSSI { get; init; }
-    public float SNR { get; init; }
+    public int TimeSinceStart { get; private init; }
+    public int GPSTimeUTC { get; private init; }
+    public int GPSFix { get; private init; }
+    public int SatelliteCount { get; private init; }
+    public double Latitude { get; private init; }
+    public double Longitude { get; private init; }
+    public double GPSAltitude { get; private init; }
+    public float AltitudeBarometer { get; private init; }
+    public float PressureBarometer { get; private init; }
+    public float Temperature { get; private init; }
+    public float Humidity { get; private init; }
+    public float AccelerationX { get; private init; }
+    public float AccelerationY { get; private init; }
+    public float AccelerationZ { get; private init; }
+    public float OmegaX { get; private init; }
+    public float OmegaY { get; private init; }
+    public float OmegaZ { get; private init; }
+    public float MagneticFieldX { get; private init; }
+    public float MagneticFieldY { get; private init; }
+    public float MagneticFieldZ { get; private init; }
+    public float Theta { get; private init; }
+    public float RSSI { get; private init; }
+    public float SNR { get; private init; }
 
     /// <summary>Parses a raw packet. Returns false (and never throws) on malformed input.</summary>
     public static bool TryParse(ReadOnlySpan<byte> data, out ProcessedPacket packet)
@@ -232,7 +234,7 @@ public sealed class TelemetryEngine(
     }
 
     /// <summary>Stops listening, flushes the log, and completes all subscriber channels. Idempotent.</summary>
-    public void Stop()
+    private void Stop()
     {
         if (Interlocked.Exchange(ref _stopped, 1) != 0) return;
 

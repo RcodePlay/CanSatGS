@@ -34,7 +34,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     [ObservableProperty] public partial string GpsTimeFormatted { get; set; } = "--:--:--";
 
     // GPS & Navigation
-    [ObservableProperty] public partial int GpsFix { get; set; }
+    [ObservableProperty] public partial int GpsFix { get; private set; }
     [ObservableProperty] public partial string GpsFixStatus { get; set; } = "No Fix";
     [ObservableProperty] public partial int SatelliteCount { get; set; }
     [ObservableProperty] public partial double Latitude { get; set; }
@@ -172,10 +172,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         try
         {
-            Settings.LocalEthIp = SettingLocalEthIp?.Trim() ?? "10.1.1.91";
-            Settings.MulticastGroup = SettingMulticastGroup?.Trim() ?? "239.255.1.1";
+            Settings.LocalEthIp = SettingLocalEthIp.Trim();
+            Settings.MulticastGroup = SettingMulticastGroup.Trim();
             Settings.Port = SettingPort;
-            Settings.LogFile = SettingLogFile?.Trim() ?? "telemetry.csv";
+            Settings.LogFile = SettingLogFile.Trim();
             Settings.DeltaT = SettingDeltaT;
             Settings.MeasStd = SettingMeasStd;
             Settings.AccelStd = SettingAccelStd;
