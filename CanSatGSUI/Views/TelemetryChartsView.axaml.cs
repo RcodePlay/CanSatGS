@@ -16,14 +16,14 @@ namespace CanSatGSUI.Views;
 /// <remarks>
 /// ScottPlot draws on Avalonia's render thread, so each chart keeps its own copy of the data and
 /// only changes it while holding <c>Plot.Sync</c>. New points are copied in batches by a timer
-/// (4x per second) so a fast packet rate doesn't redraw 10 charts for every single packet.
+/// (4x per second), so a fast packet rate doesn't redraw 10 charts for every single packet.
 /// </remarks>
 public partial class TelemetryChartsView : UserControl
 {
-    // Colours match the dark palette in App.axaml.
+    // Colors match the dark palette in App.axaml.
     private static readonly SpColor FigureBackground = SpColor.FromHex("#241A2C"); // App.CardBackground
     private static readonly SpColor DataBackground = SpColor.FromHex("#1A1320");
-    private static readonly SpColor Foreground = SpColor.FromHex("#FFF0B3"); // App.ForegroundBrush
+    private new static readonly SpColor Foreground = SpColor.FromHex("#FFF0B3"); // App.ForegroundBrush
     private static readonly SpColor GridLines = SpColor.FromHex("#3D2E4A");
 
     private static readonly SpColor Red = SpColor.FromHex("#FF6B6B");
