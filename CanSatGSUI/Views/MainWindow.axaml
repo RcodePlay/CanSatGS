@@ -2,15 +2,16 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:CanSatGSUI.ViewModels"
         xmlns:views="using:CanSatGSUI.Views"
+        xmlns:sys="using:System"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="750"
+        mc:Ignorable="d" d:DesignWidth="1440" d:DesignHeight="900"
         x:Class="CanSatGSUI.Views.MainWindow"
         x:DataType="vm:MainViewModel"
         Icon="/Assets/avalonia-logo.ico"
-        Title="CanSat Ground Station"
-        Width="1100" Height="750"
-        MinWidth="850" MinHeight="550"
+        Title="CanTauri · CanSat Ground Station"
+        Width="1440" Height="900"
+        MinWidth="1100" MinHeight="700"
         WindowStartupLocation="CenterScreen">
 
     <Design.DataContext>
@@ -18,466 +19,822 @@
     </Design.DataContext>
 
     <Window.Styles>
+        <!-- ===== Base ===== -->
         <Style Selector="Window">
-            <Setter Property="Background" Value="{DynamicResource App.BackgroundBrush}" />
-            <Setter Property="Foreground" Value="{DynamicResource App.ForegroundBrush}" />
+            <Setter Property="Background" Value="{StaticResource Ct.SurfaceBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.TextBrush}" />
+            <Setter Property="FontFamily" Value="{StaticResource Ct.TextFont}" />
         </Style>
-        <Style Selector="Border.card">
-            <!-- <Setter Property="Background"> -->
-            <!--     <Setter.Value> -->
-            <!--         <LinearGradientBrush StartPoint="0%,50%" EndPoint="100%,50%"> -->
-            <!--             <GradientStop Color="#4E1AB0" Offset="0.0"/> -->
-            <!--             <GradientStop Color="#8D1AB0" Offset="0.5"/> -->
-            <!--             <GradientStop Color="#4E1AB0" Offset="1.0"/> -->
-            <!--         </LinearGradientBrush> -->
-            <!--     </Setter.Value> -->
-            <!-- </Setter> -->
-            <Setter Property="Background" Value="{DynamicResource App.CardBackground}" />
-            <Setter Property="CornerRadius" Value="8" />
-            <Setter Property="Padding" Value="14" />
-            <Setter Property="Margin" Value="6" />
-            <Setter Property="BorderBrush" Value="{DynamicResource App.ForegroundBrush}" />
+
+        <!-- ===== Panels: flat, 1 px border, 6 px radius, no shadow ===== -->
+        <Style Selector="Border.panel">
+            <Setter Property="Background" Value="{StaticResource Ct.PanelBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.LineBrush}" />
             <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Padding" Value="20,16" />
         </Style>
-        <Style Selector="TextBlock.header">
-            <Setter Property="FontSize" Value="16" />
-            <Setter Property="FontWeight" Value="SemiBold" />
-            <Setter Property="Margin" Value="0,0,0,10" />
-            <Setter Property="Foreground" Value="{DynamicResource App.ForegroundBrush}" />
+        <!-- The one light "paper" panel per screen -->
+        <Style Selector="Border.panel.paper">
+            <Setter Property="Background" Value="{StaticResource Ct.PaperBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.PaperBrush}" />
         </Style>
-        <Style Selector="TextBlock.label">
-            <Setter Property="FontSize" Value="12" />
-            <Setter Property="Foreground" Value="{DynamicResource App.ForegroundBrush}" />
+        <Style Selector="Border.panel.alert">
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.AccentBrush}" />
+        </Style>
+        <Style Selector="Border.panel.mini">
+            <Setter Property="Padding" Value="14,12,14,10" />
+            <Setter Property="Margin" Value="6" />
+        </Style>
+        <Style Selector="Border.panel.chart">
+            <Setter Property="Margin" Value="0,0,16,16" />
+        </Style>
+
+        <!-- ===== Type ===== -->
+        <Style Selector="TextBlock.display">
+            <Setter Property="FontFamily" Value="{StaticResource Ct.DisplayFont}" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.TextBrush}" />
             <Setter Property="VerticalAlignment" Value="Center" />
         </Style>
-        <Style Selector="TextBlock.value">
-            <Setter Property="FontSize" Value="15" />
-            <Setter Property="FontWeight" Value="Medium" />
+        <Style Selector="TextBlock.title">
+            <Setter Property="FontFamily" Value="{StaticResource Ct.DisplayFont}" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="19" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.TextBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.lbl">
+            <Setter Property="FontFamily" Value="{StaticResource Ct.MonoFont}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="LetterSpacing" Value="1.8" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.MutedBrush}" />
+        </Style>
+        <Style Selector="TextBlock.mono">
+            <Setter Property="FontFamily" Value="{StaticResource Ct.MonoFont}" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.TextBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.meta">
+            <Setter Property="FontFamily" Value="{StaticResource Ct.MonoFont}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.MutedBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.help">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontWeight" Value="Light" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.MutedBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.desc">
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="FontWeight" Value="Light" />
+            <Setter Property="LineHeight" Value="21" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.MutedBrush}" />
+            <Setter Property="TextWrapping" Value="Wrap" />
+            <Setter Property="Margin" Value="0,6,0,10" />
+        </Style>
+        <Style Selector="TextBlock.th">
+            <Setter Property="FontFamily" Value="{StaticResource Ct.MonoFont}" />
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="LetterSpacing" Value="1.4" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.DimBrush}" />
+        </Style>
+
+        <!-- ===== Value rows (label ... value unit) ===== -->
+        <Style Selector="Border.row">
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.LineBrush}" />
+            <Setter Property="BorderThickness" Value="0,1,0,0" />
+            <Setter Property="Padding" Value="0,7,0,6" />
+        </Style>
+        <Style Selector="StackPanel.rows > Border.row:nth-child(1)">
+            <Setter Property="BorderThickness" Value="0" />
+        </Style>
+        <Style Selector="Border.paper Border.row">
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.InkLineBrush}" />
+        </Style>
+        <Style Selector="Grid.row">
+            <Setter Property="Margin" Value="0,4" />
+        </Style>
+        <Style Selector="TextBlock.k">
+            <Setter Property="FontSize" Value="14.5" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.MutedBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.v">
+            <Setter Property="FontFamily" Value="{StaticResource Ct.MonoFont}" />
+            <Setter Property="FontSize" Value="17" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.TextBrush}" />
             <Setter Property="VerticalAlignment" Value="Center" />
             <Setter Property="TextAlignment" Value="Right" />
-            <Setter Property="Foreground" Value="{DynamicResource App.ForegroundBrush}" />
         </Style>
-        <Style Selector="Border.badge">
-            <Setter Property="CornerRadius" Value="12" />
+        <Style Selector="TextBlock.u">
+            <Setter Property="FontSize" Value="12" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.MutedBrush}" />
+            <Setter Property="VerticalAlignment" Value="Bottom" />
+            <Setter Property="Margin" Value="4,0,0,2" />
+        </Style>
+        <Style Selector="TextBlock.why">
+            <Setter Property="FontFamily" Value="{StaticResource Ct.MonoFont}" />
+            <Setter Property="FontSize" Value="10.5" />
+            <Setter Property="LetterSpacing" Value="1.2" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.AccentBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+            <Setter Property="Margin" Value="0,0,10,0" />
+        </Style>
+        <Style Selector="Border.paper TextBlock.title">
+            <Setter Property="Foreground" Value="{StaticResource Ct.InkBrush}" />
+        </Style>
+        <Style Selector="Border.paper TextBlock.k, Border.paper TextBlock.u, Border.paper TextBlock.meta">
+            <Setter Property="Foreground" Value="{StaticResource Ct.InkMutedBrush}" />
+        </Style>
+        <Style Selector="Border.paper TextBlock.v, Border.paper TextBlock.figure">
+            <Setter Property="Foreground" Value="{StaticResource Ct.InkBrush}" />
+        </Style>
+        <!-- Red means something is wrong (on paper the darker mission red keeps contrast) -->
+        <Style Selector="TextBlock.alert">
+            <Setter Property="Foreground" Value="{StaticResource Ct.AccentBrush}" />
+        </Style>
+        <Style Selector="Border.paper TextBlock.alert, Border.paper TextBlock.why">
+            <Setter Property="Foreground" Value="{StaticResource Ct.MissionRedBrush}" />
+        </Style>
+
+        <!-- ===== Graph cards ===== -->
+        <Style Selector="StackPanel.readout">
+            <Setter Property="Orientation" Value="Horizontal" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.figure">
+            <Setter Property="FontFamily" Value="{StaticResource Ct.DisplayFont}" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="22" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.TextBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.minifig">
+            <Setter Property="FontFamily" Value="{StaticResource Ct.DisplayFont}" />
+            <Setter Property="FontWeight" Value="Bold" />
+            <Setter Property="FontSize" Value="26" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.TextBrush}" />
+        </Style>
+        <Style Selector="TextBlock.minifig.alert, TextBlock.figure.alert">
+            <Setter Property="Foreground" Value="{StaticResource Ct.AccentBrush}" />
+        </Style>
+        <Style Selector="TextBlock.mininame">
+            <Setter Property="FontSize" Value="14.5" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.TextBrush}" />
+        </Style>
+        <Style Selector="Border.key">
+            <Setter Property="Width" Value="10" />
+            <Setter Property="Height" Value="2" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.keytext">
+            <Setter Property="FontFamily" Value="{StaticResource Ct.MonoFont}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.MutedBrush}" />
+        </Style>
+
+        <!-- ===== Kalman table ===== -->
+        <Style Selector="Border.fcrow">
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.LineBrush}" />
+            <Setter Property="BorderThickness" Value="0,1,0,0" />
+            <Setter Property="Padding" Value="0,6" />
+        </Style>
+        <Style Selector="TextBlock.fc">
+            <Setter Property="FontFamily" Value="{StaticResource Ct.MonoFont}" />
+            <Setter Property="FontSize" Value="12.5" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.DataBrush}" />
+            <Setter Property="TextAlignment" Value="Right" />
+        </Style>
+        <Style Selector="TextBlock.fc.step">
+            <Setter Property="Foreground" Value="{StaticResource Ct.MutedBrush}" />
+            <Setter Property="TextAlignment" Value="Left" />
+        </Style>
+
+        <!-- ===== Header chips ===== -->
+        <Style Selector="Border.chip">
+            <Setter Property="Height" Value="26" />
+            <Setter Property="Padding" Value="10,0" />
+            <Setter Property="CornerRadius" Value="13" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.LineBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.chip TextBlock">
+            <Setter Property="FontFamily" Value="{StaticResource Ct.MonoFont}" />
+            <Setter Property="FontSize" Value="11" />
+            <Setter Property="LetterSpacing" Value="1.2" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.MutedBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Border.chip.fix">
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.PositiveLineBrush}" />
+        </Style>
+        <Style Selector="Border.chip.fix TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Ct.PositiveBrush}" />
+        </Style>
+        <Style Selector="Border.chip.alert">
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.AccentBrush}" />
+        </Style>
+        <Style Selector="Border.chip.alert TextBlock">
+            <Setter Property="Foreground" Value="{StaticResource Ct.AccentBrush}" />
+        </Style>
+
+        <!-- ===== Status bar ===== -->
+        <Style Selector="Ellipse.dot">
+            <Setter Property="Fill" Value="{StaticResource Ct.PositiveBrush}" />
+        </Style>
+        <Style Selector="Ellipse.dot.lost">
+            <Setter Property="Fill" Value="{StaticResource Ct.AccentBrush}" />
+        </Style>
+        <Style Selector="TextBlock.linkhealth">
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.PositiveBrush}" />
+            <Setter Property="VerticalAlignment" Value="Center" />
+        </Style>
+        <Style Selector="TextBlock.linkhealth.lost">
+            <Setter Property="Foreground" Value="{StaticResource Ct.AccentBrush}" />
+        </Style>
+        <Style Selector="TextBlock.status">
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.AccentBrush}" />
+        </Style>
+        <Style Selector="TextBlock.status.ok">
+            <Setter Property="Foreground" Value="{StaticResource Ct.PositiveBrush}" />
+        </Style>
+
+        <!-- ===== Buttons ===== -->
+        <!-- Top navigation tabs -->
+        <Style Selector="Button.tab">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.MutedBrush}" />
+            <Setter Property="FontSize" Value="19" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="Padding" Value="16,0" />
+            <Setter Property="VerticalAlignment" Value="Stretch" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="BorderThickness" Value="0,0,0,2" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.tab /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.tab:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.TextBrush}" />
+            <Setter Property="BorderBrush" Value="Transparent" />
+        </Style>
+        <Style Selector="Button.tab.on">
+            <Setter Property="Foreground" Value="{StaticResource Ct.TextBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.DataBrush}" />
+        </Style>
+        <Style Selector="Button.tab.on:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.DataBrush}" />
+        </Style>
+
+        <!-- Segmented switch (Values | Graphs, Pinned | All) -->
+        <Style Selector="Border.seg">
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.LineBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="ClipToBounds" Value="True" />
+            <Setter Property="HorizontalAlignment" Value="Left" />
+        </Style>
+        <Style Selector="Button.seg">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="CornerRadius" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.MutedBrush}" />
+            <Setter Property="FontSize" Value="14" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.seg:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource Ct.LineBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.TextBrush}" />
+        </Style>
+        <Style Selector="Button.seg.on">
+            <Setter Property="Background" Value="{StaticResource Ct.TextBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.InkBrush}" />
+        </Style>
+        <Style Selector="Button.seg.on:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource Ct.TextBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.InkBrush}" />
+        </Style>
+
+        <!-- Quiet secondary buttons -->
+        <Style Selector="Button.quiet">
+            <Setter Property="Height" Value="34" />
+            <Setter Property="Padding" Value="14,0" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.LineBrush}" />
+            <Setter Property="BorderThickness" Value="1" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.TextBrush}" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.quiet:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource Ct.LineBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.FieldBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.TextBrush}" />
+        </Style>
+
+        <!-- The one red action on the screen -->
+        <Style Selector="Button.primary">
+            <Setter Property="Height" Value="44" />
+            <Setter Property="Padding" Value="18,0" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="Background" Value="{StaticResource Ct.MissionRedBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.TextBrush}" />
+            <Setter Property="FontWeight" Value="Medium" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+        </Style>
+        <Style Selector="Button.primary:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="#A82127" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.TextBrush}" />
+        </Style>
+
+        <!-- Pin star -->
+        <Style Selector="Button.pin">
+            <Setter Property="Width" Value="32" />
+            <Setter Property="Height" Value="32" />
+            <Setter Property="Padding" Value="0" />
+            <Setter Property="Background" Value="Transparent" />
+            <Setter Property="HorizontalContentAlignment" Value="Center" />
+            <Setter Property="VerticalContentAlignment" Value="Center" />
+            <Setter Property="CornerRadius" Value="6" />
+        </Style>
+        <Style Selector="Button.pin:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{StaticResource Ct.LineBrush}" />
+        </Style>
+
+        <!-- ===== Inputs ===== -->
+        <Style Selector="TextBox, NumericUpDown">
+            <Setter Property="Background" Value="{StaticResource Ct.SurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.FieldBrush}" />
+            <Setter Property="Foreground" Value="{StaticResource Ct.TextBrush}" />
+            <Setter Property="FontFamily" Value="{StaticResource Ct.MonoFont}" />
+            <Setter Property="FontSize" Value="13.5" />
+            <Setter Property="CornerRadius" Value="6" />
+            <Setter Property="MinHeight" Value="36" />
+        </Style>
+        <Style Selector="TextBox:pointerover /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{StaticResource Ct.SurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.MutedBrush}" />
+        </Style>
+        <Style Selector="TextBox:focus /template/ Border#PART_BorderElement">
+            <Setter Property="Background" Value="{StaticResource Ct.SurfaceBrush}" />
+            <Setter Property="BorderBrush" Value="{StaticResource Ct.DataBrush}" />
+        </Style>
+        <Style Selector="TextBox.small">
+            <Setter Property="MinHeight" Value="30" />
+            <Setter Property="FontSize" Value="12.5" />
             <Setter Property="Padding" Value="10,4" />
-            <Setter Property="Margin" Value="4,0" />
         </Style>
+
+        <!-- Telemetry sub-tabs (Parsed Telemetry | Packet History) -->
+        <Style Selector="TabControl.sub TabItem">
+            <Setter Property="FontSize" Value="15" />
+            <Setter Property="MinHeight" Value="36" />
+            <Setter Property="Padding" Value="0,0,22,0" />
+        </Style>
+        <Style Selector="ListBox.history">
+            <Setter Property="Background" Value="Transparent" />
+        </Style>
+        <Style Selector="ListBox.history ListBoxItem">
+            <Setter Property="Padding" Value="0,3" />
+            <Setter Property="MinHeight" Value="0" />
+        </Style>
+
     </Window.Styles>
 
-    <Grid RowDefinitions="Auto, *, Auto" Margin="12">
-        <!-- Top Header & Quick Status Bar -->
-        <Border Grid.Row="0" Classes="card" Margin="6,0,6,8" Padding="12,10">
-            <Grid ColumnDefinitions="Auto, *, Auto">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="12" VerticalAlignment="Center">
-                    <TextBlock Text="CanSat Ground Station" FontSize="20" FontWeight="Bold" VerticalAlignment="Center"
-                               Foreground="{DynamicResource App.ForegroundBrush}" />
-                    <Border Classes="badge" Background="#455A64">
-                        <TextBlock Text="{Binding GpsFixStatus}" Foreground="{DynamicResource App.ForegroundBrush}"
-                                   FontWeight="SemiBold" FontSize="12" />
-                    </Border>
+    <Grid RowDefinitions="Auto, *, Auto" Margin="24,20,24,14">
+
+        <!-- ===================== Header ===================== -->
+        <Border Grid.Row="0" Classes="panel" Height="64" Padding="11,0,8,0">
+            <Grid ColumnDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto, *, Auto">
+                <!-- Roundel: red rim, ink sky, brass star -->
+                <Panel Width="42" Height="42" VerticalAlignment="Center">
+                    <Ellipse Fill="{StaticResource Ct.MissionRedBrush}" />
+                    <Ellipse Margin="3" Fill="{StaticResource Ct.InkBrush}" />
+                    <Path Data="{StaticResource StarGeometry}" Fill="{StaticResource Ct.DataBrush}"
+                          Width="14" Height="14" Stretch="Uniform" />
+                </Panel>
+
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,22,0">
+                    <TextBlock Classes="display" FontSize="20" LetterSpacing="3" Text="CANTAURI" />
+                    <TextBlock Classes="lbl" FontSize="10" Margin="0,3,0,0" Text="CANSAT GROUND STATION" />
                 </StackPanel>
 
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center">
-                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <TextBlock Text="Mission Time:" Classes="label" />
-                        <TextBlock Text="{Binding TimeSinceStart, StringFormat='T+{0} s'}" FontWeight="Bold"
-                                   FontSize="14" Foreground="White" />
-                    </StackPanel>
+                <Rectangle Grid.Column="2" Width="1" Margin="0,13" Fill="{StaticResource Ct.LineBrush}" />
 
-                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <TextBlock Text="GPS UTC:" Classes="label" />
-                        <TextBlock Text="{Binding GpsTimeFormatted}" FontWeight="SemiBold" FontSize="13"
-                                   Foreground="White" />
-                    </StackPanel>
+                <StackPanel Grid.Column="3" Orientation="Horizontal" VerticalAlignment="Center" Margin="22,0,0,0" Spacing="8">
+                    <TextBlock Classes="lbl" VerticalAlignment="Bottom" Margin="0,0,0,5" Text="MISSION TIME" />
+                    <TextBlock Classes="display" FontSize="17" Foreground="{StaticResource Ct.MutedBrush}"
+                               VerticalAlignment="Bottom" Margin="0,0,0,3" Text="T+" />
+                    <TextBlock Classes="display" FontSize="30" Text="{Binding MissionClock}" Margin="-6,0,0,0" />
+                </StackPanel>
 
-                    <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                        <TextBlock Text="Signal:" Classes="label" />
-                        <TextBlock Text="{Binding SignalStatus}" FontWeight="SemiBold" FontSize="13" Foreground="White" />
+                <Grid Grid.Column="4" ColumnDefinitions="Auto, Auto" RowDefinitions="Auto, Auto" VerticalAlignment="Center"
+                      Margin="22,0,0,0">
+                    <TextBlock Classes="lbl" Text="GPS UTC" Margin="0,0,10,2" />
+                    <TextBlock Grid.Column="1" Classes="mono" Text="{Binding GpsClock}" />
+                    <TextBlock Grid.Row="1" Classes="lbl" Text="SIGNAL" Margin="0,2,10,0" />
+                    <TextBlock Grid.Row="1" Grid.Column="1" Classes="mono" Text="{Binding SignalStatus}" />
+                </Grid>
+
+                <Border Grid.Column="5" Classes="chip" Classes.fix="{Binding HasGpsFix}" Margin="22,0,0,0">
+                    <TextBlock Text="{Binding GpsFixStatus}" />
+                </Border>
+
+                <Border Grid.Column="6" Classes="chip alert" Margin="10,0,0,0" IsVisible="{Binding HasAlerts}"
+                        ToolTip.Tip="{Binding AlertDetails}">
+                    <StackPanel Orientation="Horizontal" Spacing="7">
+                        <Ellipse Width="8" Height="8" Fill="{StaticResource Ct.AccentBrush}" VerticalAlignment="Center" />
+                        <TextBlock Text="{Binding AlertSummary}" />
                     </StackPanel>
+                </Border>
+
+                <StackPanel Grid.Column="8" Orientation="Horizontal" Spacing="4">
+                    <Button Classes="tab" Classes.on="{Binding IsDashboardTab}" Content="Dashboard"
+                            Command="{Binding ShowTabCommand}" CommandParameter="0" />
+                    <Button Classes="tab" Classes.on="{Binding IsGraphsTab}" Content="Graphs"
+                            Command="{Binding ShowTabCommand}" CommandParameter="1" />
+                    <Button Classes="tab" Classes.on="{Binding IsSettingsTab}" Content="Settings"
+                            Command="{Binding ShowTabCommand}" CommandParameter="2" />
                 </StackPanel>
             </Grid>
         </Border>
 
-        <!-- Main Content Area: Tabs for Dashboard and Settings -->
-        <TabControl Grid.Row="1" Margin="6,0">
-            <!-- Dashboard Tab -->
-            <TabItem Header="Dashboard">
-                <Grid ColumnDefinitions="*, *" Margin="0,8,0,0">
-                    <!-- Left Column: Primary Telemetry Data Cards -->
-                    <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Disabled"
-                                  VerticalScrollBarVisibility="Auto">
-                        <StackPanel Spacing="4">
-                            <!-- GPS & Navigation Card -->
-                            <Border Classes="card">
-                                <StackPanel Spacing="8">
-                                    <TextBlock Text="Position &amp; Navigation" Classes="header" />
-                                    <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto, Auto, Auto"
-                                          Margin="0,0,0,0">
-                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Latitude" Classes="label" />
-                                        <TextBlock Grid.Row="0" Grid.Column="1"
-                                                   Text="{Binding Latitude, StringFormat='{}{0:F5}°'}" Classes="value"
-                                                   Foreground="White" />
+        <!-- ===================== Content ===================== -->
+        <Panel Grid.Row="1" Margin="0,14">
 
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Longitude" Classes="label"
-                                                   Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="1" Grid.Column="1"
-                                                   Text="{Binding Longitude, StringFormat='{}{0:F5}°'}" Classes="value"
-                                                   Margin="0,6,0,0" Foreground="White" />
+            <!-- ========== Dashboard ========== -->
+            <Grid ColumnDefinitions="*, 476" IsVisible="{Binding IsDashboardTab}">
+                <Grid Grid.Column="0" RowDefinitions="Auto, *" Margin="0,0,16,0">
+                    <Grid ColumnDefinitions="Auto, *" Margin="0,0,0,12">
+                        <Border Classes="seg">
+                            <StackPanel Orientation="Horizontal">
+                                <Button Classes="seg" Classes.on="{Binding IsDashboardValuesView}"
+                                        Command="{Binding ShowDashboardValuesCommand}" Content="Values" />
+                                <Button Classes="seg" Classes.on="{Binding IsDashboardGraphsView}"
+                                        Command="{Binding ShowDashboardGraphsCommand}" Content="Graphs" />
+                            </StackPanel>
+                        </Border>
+                        <TextBlock Grid.Column="1" Classes="lbl" HorizontalAlignment="Right" VerticalAlignment="Center"
+                                   Foreground="{StaticResource Ct.DimBrush}"
+                                   Text="{Binding DashboardHint}" />
+                    </Grid>
 
-                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="GPS Altitude" Classes="label"
-                                                   Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="2" Grid.Column="1"
-                                                   Text="{Binding GpsAltitude, StringFormat='{}{0:F1} m'}"
-                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
-
-                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Satellites Tracked"
-                                                   Classes="label" Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding SatelliteCount}"
-                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
-
-                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Fix Status" Classes="label"
-                                                   Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="4" Grid.Column="1" Text="{Binding GpsFixStatus}"
-                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
-                                    </Grid>
+                    <!-- Values view: plain numbers -->
+                    <ScrollViewer Grid.Row="1" IsVisible="{Binding IsDashboardValuesView}"
+                                  HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <Grid ColumnDefinitions="*, *">
+                            <StackPanel Grid.Column="0" Spacing="16" Margin="0,0,8,0">
+                            <Border Classes="panel paper" Classes.alert="{Binding IsPositionAlert}">
+                                <StackPanel>
+                                    <TextBlock Classes="title" Text="Position &amp; Navigation" Margin="0,0,0,8" />
+                                    <StackPanel Classes="rows">
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Latitude" />
+                                        <TextBlock Grid.Column="2" Classes="v" Text="{Binding Latitude, StringFormat='{}{0:F5}°'}" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Longitude" />
+                                        <TextBlock Grid.Column="2" Classes="v" Text="{Binding Longitude, StringFormat='{}{0:F5}°'}" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="GPS Altitude" /><TextBlock Grid.Column="1" Classes="why" Text="{Binding GpsAltitudeLimit.Reason}" />
+                                        <TextBlock Grid.Column="2" Classes="v" Classes.alert="{Binding GpsAltitudeLimit.IsTripped}" Text="{Binding GpsAltitude, StringFormat='{}{0:F1}'}" /><TextBlock Grid.Column="3" Classes="u" Text="m" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Satellites Tracked" />
+                                        <TextBlock Grid.Column="2" Classes="v" Text="{Binding SatelliteCount}" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Fix Status" /><TextBlock Grid.Column="1" Classes="why" Text="fix lost" IsVisible="{Binding IsGpsFixLost}" />
+                                        <TextBlock Grid.Column="2" Classes="v" Classes.alert="{Binding IsGpsFixLost}" Text="{Binding GpsFixStatus}" />
+                                    </Grid></Border>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
-
-                            <!-- Atmospheric Conditions Card -->
-                            <Border Classes="card">
-                                <StackPanel Spacing="8">
-                                    <TextBlock Text="Atmospheric Telemetry" Classes="header" />
-                                    <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto, Auto">
-                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Barometric Altitude"
-                                                   Classes="label" />
-                                        <TextBlock Grid.Row="0" Grid.Column="1"
-                                                   Text="{Binding AltitudeBarometer, StringFormat='{}{0:F1} m'}"
-                                                   Classes="value" Foreground="White" />
-
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Temperature" Classes="label"
-                                                   Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="1" Grid.Column="1"
-                                                   Text="{Binding Temperature, StringFormat='{}{0:F1} °C'}"
-                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
-
-                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Pressure" Classes="label"
-                                                   Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="2" Grid.Column="1"
-                                                   Text="{Binding Pressure, StringFormat='{}{0:F2} hPa'}"
-                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
-
-                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Humidity" Classes="label"
-                                                   Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="3" Grid.Column="1"
-                                                   Text="{Binding Humidity, StringFormat='{}{0:F1} %'}" Classes="value"
-                                                   Margin="0,6,0,0" Foreground="White" />
-                                    </Grid>
+                            <Border Classes="panel" Classes.alert="{Binding IsAtmosphereAlert}">
+                                <StackPanel>
+                                    <TextBlock Classes="title" Text="Atmospheric Telemetry" Margin="0,0,0,8" />
+                                    <StackPanel Classes="rows">
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Barometric Altitude" /><TextBlock Grid.Column="1" Classes="why" Text="{Binding BaroAltitudeLimit.Reason}" />
+                                        <TextBlock Grid.Column="2" Classes="v" Classes.alert="{Binding BaroAltitudeLimit.IsTripped}" Text="{Binding AltitudeBarometer, StringFormat='{}{0:F1}'}" /><TextBlock Grid.Column="3" Classes="u" Text="m" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Temperature" /><TextBlock Grid.Column="1" Classes="why" Text="{Binding TemperatureLimit.Reason}" />
+                                        <TextBlock Grid.Column="2" Classes="v" Classes.alert="{Binding TemperatureLimit.IsTripped}" Text="{Binding Temperature, StringFormat='{}{0:F1}'}" /><TextBlock Grid.Column="3" Classes="u" Text="°C" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Pressure" /><TextBlock Grid.Column="1" Classes="why" Text="{Binding PressureLimit.Reason}" />
+                                        <TextBlock Grid.Column="2" Classes="v" Classes.alert="{Binding PressureLimit.IsTripped}" Text="{Binding Pressure, StringFormat='{}{0:F2}'}" /><TextBlock Grid.Column="3" Classes="u" Text="hPa" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Humidity" /><TextBlock Grid.Column="1" Classes="why" Text="{Binding HumidityLimit.Reason}" />
+                                        <TextBlock Grid.Column="2" Classes="v" Classes.alert="{Binding HumidityLimit.IsTripped}" Text="{Binding Humidity, StringFormat='{}{0:F1}'}" /><TextBlock Grid.Column="3" Classes="u" Text="%" />
+                                    </Grid></Border>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
-
-                            <!-- Dynamics & Acceleration Card -->
-                            <Border Classes="card">
-                                <StackPanel Spacing="8">
-                                    <TextBlock Text="Motion &amp; Acceleration" Classes="header" />
-                                    <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto, Auto, Auto">
-                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Total Magnitude" Classes="label"
-                                                   FontWeight="SemiBold" />
-                                        <TextBlock Grid.Row="0" Grid.Column="1"
-                                                   Text="{Binding AccelerationMagnitude, StringFormat='{}{0:F2} m/s²'}"
-                                                   Classes="value" FontWeight="Bold" Foreground="White" />
-
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Acceleration X" Classes="label"
-                                                   Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="1" Grid.Column="1"
-                                                   Text="{Binding AccelerationX, StringFormat='{}{0:F2} m/s²'}"
-                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
-
-                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Acceleration Y" Classes="label"
-                                                   Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="2" Grid.Column="1"
-                                                   Text="{Binding AccelerationY, StringFormat='{}{0:F2} m/s²'}"
-                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
-
-                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Acceleration Z" Classes="label"
-                                                   Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="3" Grid.Column="1"
-                                                   Text="{Binding AccelerationZ, StringFormat='{}{0:F2} m/s²'}"
-                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
-                                    </Grid>
+                            <Border Classes="panel" Classes.alert="{Binding IsRadioAlert}">
+                                <StackPanel>
+                                    <TextBlock Classes="title" Text="Radio &amp; Link" Margin="0,0,0,8" />
+                                    <StackPanel Classes="rows">
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="RSSI" /><TextBlock Grid.Column="1" Classes="why" Text="{Binding RssiLimit.Reason}" />
+                                        <TextBlock Grid.Column="2" Classes="v" Classes.alert="{Binding RssiLimit.IsTripped}" Text="{Binding Rssi, StringFormat='{}{0:F0}'}" /><TextBlock Grid.Column="3" Classes="u" Text="dBm" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Signal-to-Noise Ratio (SNR)" /><TextBlock Grid.Column="1" Classes="why" Text="{Binding SnrLimit.Reason}" />
+                                        <TextBlock Grid.Column="2" Classes="v" Classes.alert="{Binding SnrLimit.IsTripped}" Text="{Binding Snr, StringFormat='{}{0:F0}'}" /><TextBlock Grid.Column="3" Classes="u" Text="dB" />
+                                    </Grid></Border>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
-
-                            <!-- Angular Rate & Magnetic Field Card -->
-                            <Border Classes="card">
-                                <StackPanel Spacing="8">
-                                    <TextBlock Text="Angular Rate &amp; Magnetic Field" Classes="header" />
-                                    <Grid ColumnDefinitions="*, Auto"
-                                          RowDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto">
-                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="Angular velocity X"
-                                                   Classes="label" />
-                                        <TextBlock Grid.Row="0" Grid.Column="1"
-                                                   Text="{Binding OmegaXDegreesPerSecond, StringFormat='{}{0:F2} °/s'}"
-                                                   Classes="value" Foreground="White" />
-
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Angular velocity Y"
-                                                   Classes="label" Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="1" Grid.Column="1"
-                                                   Text="{Binding OmegaYDegreesPerSecond, StringFormat='{}{0:F2} °/s'}"
-                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
-
-                                        <TextBlock Grid.Row="2" Grid.Column="0" Text="Angular velocity Z"
-                                                   Classes="label" Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="2" Grid.Column="1"
-                                                   Text="{Binding OmegaZDegreesPerSecond, StringFormat='{}{0:F2} °/s'}"
-                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
-
-                                        <TextBlock Grid.Row="3" Grid.Column="0" Text="Magnetic field X" Classes="label"
-                                                   Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="3" Grid.Column="1"
-                                                   Text="{Binding MagneticFieldX, StringFormat='{}{0:F2} µT'}"
-                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
-
-                                        <TextBlock Grid.Row="4" Grid.Column="0" Text="Magnetic field Y" Classes="label"
-                                                   Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="4" Grid.Column="1"
-                                                   Text="{Binding MagneticFieldY, StringFormat='{}{0:F2} µT'}"
-                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
-
-                                        <TextBlock Grid.Row="5" Grid.Column="0" Text="Magnetic field Z" Classes="label"
-                                                   Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="5" Grid.Column="1"
-                                                   Text="{Binding MagneticFieldZ, StringFormat='{}{0:F2} µT'}"
-                                                   Classes="value" Margin="0,6,0,0" Foreground="White" />
-
-                                        <TextBlock Grid.Row="6" Grid.Column="0" Text="Azimuth (Theta)" Classes="label"
-                                                   Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="6" Grid.Column="1"
-                                                   Text="{Binding Theta, StringFormat='{}{0:F2} °'}" Classes="value"
-                                                   Margin="0,6,0,0" Foreground="White" />
-                                    </Grid>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" Spacing="16" Margin="8,0,0,0">
+                            <Border Classes="panel" Classes.alert="{Binding IsMotionAlert}">
+                                <StackPanel>
+                                    <TextBlock Classes="title" Text="Motion &amp; Acceleration" Margin="0,0,0,8" />
+                                    <StackPanel Classes="rows">
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Total Magnitude" /><TextBlock Grid.Column="1" Classes="why" Text="{Binding AccelMagnitudeLimit.Reason}" />
+                                        <TextBlock Grid.Column="2" Classes="v" Classes.alert="{Binding AccelMagnitudeLimit.IsTripped}" Text="{Binding AccelerationMagnitude, StringFormat='{}{0:F2}'}" /><TextBlock Grid.Column="3" Classes="u" Text="m/s²" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Acceleration X" />
+                                        <TextBlock Grid.Column="2" Classes="v" Text="{Binding AccelerationX, StringFormat='{}{0:F2}'}" /><TextBlock Grid.Column="3" Classes="u" Text="m/s²" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Acceleration Y" />
+                                        <TextBlock Grid.Column="2" Classes="v" Text="{Binding AccelerationY, StringFormat='{}{0:F2}'}" /><TextBlock Grid.Column="3" Classes="u" Text="m/s²" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Acceleration Z" />
+                                        <TextBlock Grid.Column="2" Classes="v" Text="{Binding AccelerationZ, StringFormat='{}{0:F2}'}" /><TextBlock Grid.Column="3" Classes="u" Text="m/s²" />
+                                    </Grid></Border>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
-
-                            <!-- RF & Signal Quality Card -->
-                            <Border Classes="card">
-                                <StackPanel Spacing="8">
-                                    <TextBlock Text="Radio &amp; Link" Classes="header" />
-                                    <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto">
-                                        <TextBlock Grid.Row="0" Grid.Column="0" Text="RSSI" Classes="label" />
-                                        <TextBlock Grid.Row="0" Grid.Column="1"
-                                                   Text="{Binding Rssi, StringFormat='{}{0:F0} dBm'}" Classes="value"
-                                                   Foreground="White" />
-
-                                        <TextBlock Grid.Row="1" Grid.Column="0" Text="Signal-to-Noise Ratio (SNR)"
-                                                   Classes="label" Margin="0,6,0,0" />
-                                        <TextBlock Grid.Row="1" Grid.Column="1"
-                                                   Text="{Binding Snr, StringFormat='{}{0:F0} dB'}" Classes="value"
-                                                   Margin="0,6,0,0" Foreground="White" />
-                                    </Grid>
+                            <Border Classes="panel" Classes.alert="{Binding IsRotationAlert}">
+                                <StackPanel>
+                                    <TextBlock Classes="title" Text="Angular Rate &amp; Magnetic Field" Margin="0,0,0,8" />
+                                    <StackPanel Classes="rows">
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Angular velocity X" /><TextBlock Grid.Column="1" Classes="why" Text="{Binding AngularVelocityLimit.Reason}" />
+                                        <TextBlock Grid.Column="2" Classes="v" Classes.alert="{Binding AngularVelocityLimit.IsTripped}" Text="{Binding OmegaXDegreesPerSecond, StringFormat='{}{0:F2}'}" /><TextBlock Grid.Column="3" Classes="u" Text="°/s" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Angular velocity Y" />
+                                        <TextBlock Grid.Column="2" Classes="v" Classes.alert="{Binding AngularVelocityLimit.IsTripped}" Text="{Binding OmegaYDegreesPerSecond, StringFormat='{}{0:F2}'}" /><TextBlock Grid.Column="3" Classes="u" Text="°/s" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Angular velocity Z" />
+                                        <TextBlock Grid.Column="2" Classes="v" Classes.alert="{Binding AngularVelocityLimit.IsTripped}" Text="{Binding OmegaZDegreesPerSecond, StringFormat='{}{0:F2}'}" /><TextBlock Grid.Column="3" Classes="u" Text="°/s" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Magnetic field X" /><TextBlock Grid.Column="1" Classes="why" Text="{Binding MagneticFieldLimit.Reason}" />
+                                        <TextBlock Grid.Column="2" Classes="v" Classes.alert="{Binding MagneticFieldLimit.IsTripped}" Text="{Binding MagneticFieldX, StringFormat='{}{0:F2}'}" /><TextBlock Grid.Column="3" Classes="u" Text="µT" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Magnetic field Y" />
+                                        <TextBlock Grid.Column="2" Classes="v" Classes.alert="{Binding MagneticFieldLimit.IsTripped}" Text="{Binding MagneticFieldY, StringFormat='{}{0:F2}'}" /><TextBlock Grid.Column="3" Classes="u" Text="µT" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Magnetic field Z" />
+                                        <TextBlock Grid.Column="2" Classes="v" Classes.alert="{Binding MagneticFieldLimit.IsTripped}" Text="{Binding MagneticFieldZ, StringFormat='{}{0:F2}'}" /><TextBlock Grid.Column="3" Classes="u" Text="µT" />
+                                    </Grid></Border>
+                                    <Border Classes="row"><Grid ColumnDefinitions="*, Auto, Auto, Auto">
+                                        <TextBlock Classes="k" Text="Azimuth (Theta)" />
+                                        <TextBlock Grid.Column="2" Classes="v" Text="{Binding Theta, StringFormat='{}{0:F2}'}" /><TextBlock Grid.Column="3" Classes="u" Text="°" />
+                                    </Grid></Border>
+                                    </StackPanel>
                                 </StackPanel>
                             </Border>
-                        </StackPanel>
+                            </StackPanel>
+                        </Grid>
                     </ScrollViewer>
 
-                    <!-- Right Column: Trajectory Forecast & Logs -->
-                    <Grid Grid.Column="1" RowDefinitions="Auto, *">
-                        <!-- Kalman 3D Trajectory Forecast -->
-                        <Border Grid.Row="0" Classes="card">
-                            <StackPanel Spacing="8">
-                                <Grid ColumnDefinitions="*, Auto">
-                                    <TextBlock Grid.Column="0" Text="Kalman 3D Trajectory Forecast" Classes="header"
-                                               Margin="0" />
-                                    <TextBlock Grid.Column="1"
-                                               Text="{Binding PredictedTrajectory.Count, StringFormat='{}{0} Steps Ahead'}"
-                                               Classes="label" VerticalAlignment="Center" Foreground="White" />
+                    <!-- Graphs view: small live graphs -->
+                    <views:DashboardGraphsView Grid.Row="1" IsVisible="{Binding IsDashboardGraphsView}" Margin="-6" />
+                </Grid>
+
+                <!-- Right column: Kalman forecast + telemetry text -->
+                <Grid Grid.Column="1" RowDefinitions="Auto, *">
+                    <Border Classes="panel" Margin="0,0,0,16">
+                        <StackPanel>
+                            <Grid ColumnDefinitions="*, Auto" Margin="0,0,0,8">
+                                <TextBlock Classes="title" Text="Kalman 3D Trajectory Forecast" />
+                                <TextBlock Grid.Column="1" Classes="meta"
+                                           Text="{Binding PredictedTrajectory.Count, StringFormat='{}{0} Steps Ahead'}" />
+                            </Grid>
+
+                            <TextBlock Classes="help" FontStyle="Italic" IsVisible="{Binding !HasTrajectoryForecast}"
+                                       Text="Awaiting GPS fix to generate trajectory prediction..." />
+
+                            <StackPanel IsVisible="{Binding HasTrajectoryForecast}">
+                                <Grid ColumnDefinitions="44, 64, *, *, *" Margin="0,0,0,4">
+                                    <TextBlock Classes="th" Text="STEP" />
+                                    <TextBlock Grid.Column="1" Classes="th" TextAlignment="Right" Text="ΔT" />
+                                    <TextBlock Grid.Column="2" Classes="th" TextAlignment="Right" Text="LATITUDE" />
+                                    <TextBlock Grid.Column="3" Classes="th" TextAlignment="Right" Text="LONGITUDE" />
+                                    <TextBlock Grid.Column="4" Classes="th" TextAlignment="Right" Text="ALTITUDE" />
                                 </Grid>
-
-                                <TextBlock Text="Awaiting GPS fix to generate trajectory prediction..."
-                                           Classes="label"
-                                           FontStyle="Italic"
-                                           IsVisible="{Binding !HasTrajectoryForecast}" />
-
-                                <ItemsControl ItemsSource="{Binding PredictedTrajectory}"
-                                              IsVisible="{Binding HasTrajectoryForecast}">
+                                <ItemsControl ItemsSource="{Binding PredictedTrajectory}">
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="vm:TrajectoryForecastItem">
-                                            <Border Margin="0,2" Padding="8,4"
-                                                    Background="{DynamicResource App.AccentBrush}" CornerRadius="4">
-                                                <TextBlock Text="{Binding DisplayText}" FontSize="12"
-                                                           FontFamily="Consolas,Cascadia Mono,DejaVu Sans Mono,monospace" />
+                                            <Border Classes="fcrow">
+                                                <Grid ColumnDefinitions="44, 64, *, *, *">
+                                                    <TextBlock Classes="fc step" Text="{Binding StepText}" />
+                                                    <TextBlock Grid.Column="1" Classes="fc" Text="{Binding DeltaText}" />
+                                                    <TextBlock Grid.Column="2" Classes="fc" Text="{Binding LatitudeText}" />
+                                                    <TextBlock Grid.Column="3" Classes="fc" Text="{Binding LongitudeText}" />
+                                                    <TextBlock Grid.Column="4" Classes="fc" Text="{Binding AltitudeText}" />
+                                                </Grid>
                                             </Border>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
+                                <TextBlock Classes="lbl" Foreground="{StaticResource Ct.DimBrush}" Margin="0,8,0,0"
+                                           Text="PREDICTED · NOT MEASURED" />
                             </StackPanel>
-                        </Border>
+                        </StackPanel>
+                    </Border>
 
-                        <!-- Telemetry Viewer / Packet Log -->
-                        <Border Grid.Row="1" Classes="card" Margin="6,4,6,6">
-                            <TabControl Margin="0" Padding="0">
-                                <TabItem Header="Parsed Telemetry" Foreground="{DynamicResource App.ForegroundBrush}">
-                                    <ScrollViewer Margin="0,8,0,0" HorizontalScrollBarVisibility="Auto"
-                                                  VerticalScrollBarVisibility="Auto">
-                                        <TextBlock Text="{Binding FormattedTelemetry}"
-                                                   FontFamily="Consolas,Cascadia Mono,DejaVu Sans Mono,monospace"
-                                                   FontSize="13"
-                                                   LineHeight="20"
-                                                   Foreground="{DynamicResource App.ForegroundBrush}"
-                                                   Background="{DynamicResource App.CardBackground}" />
-                                    </ScrollViewer>
-                                </TabItem>
-                                <TabItem Header="Packet History" Foreground="{DynamicResource App.ForegroundBrush}">
-                                    <ListBox ItemsSource="{Binding PacketHistory}"
-                                             Margin="0,8,0,0"
-                                             FontFamily="Consolas,Cascadia Mono,DejaVu Sans Mono,monospace"
-                                             FontSize="12"
-                                             Background="{DynamicResource App.CardBackground}">
-                                        <ListBox.ItemTemplate>
-                                            <DataTemplate>
-                                                <TextBlock Text="{Binding}" />
-                                            </DataTemplate>
-                                        </ListBox.ItemTemplate>
-                                    </ListBox>
-                                </TabItem>
-                            </TabControl>
-                        </Border>
-                    </Grid>
+                    <Border Grid.Row="1" Classes="panel" Padding="20,8,20,16">
+                        <TabControl Classes="sub" Padding="0">
+                            <TabItem Header="Parsed Telemetry">
+                                <ScrollViewer Margin="0,10,0,0" HorizontalScrollBarVisibility="Auto"
+                                              VerticalScrollBarVisibility="Auto">
+                                    <TextBlock Classes="mono" FontSize="12" LineHeight="17"
+                                               Text="{Binding FormattedTelemetry}" />
+                                </ScrollViewer>
+                            </TabItem>
+                            <TabItem Header="Packet History">
+                                <ListBox Classes="history" ItemsSource="{Binding PacketHistory}" Margin="0,10,0,0">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate x:DataType="sys:String">
+                                            <TextBlock Classes="mono" FontSize="12" Text="{Binding}" />
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </TabItem>
+                        </TabControl>
+                    </Border>
                 </Grid>
-            </TabItem>
-
-            <!-- Graphs Tab: live chart for every measurement -->
-            <TabItem Header="Graphs">
-                <views:TelemetryChartsView />
-            </TabItem>
-
-            <!-- Settings Tab -->
-            <TabItem Header="Settings">
-                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto"
-                              Margin="0,8,0,0">
-                    <StackPanel Spacing="10" MaxWidth="850" HorizontalAlignment="Left" Margin="6,0">
-                        <!-- Network & Telemetry Settings Card -->
-                        <Border Classes="card">
-                            <StackPanel Spacing="10">
-                                <TextBlock Text="Network &amp; Telemetry Stream Configuration" Classes="header" />
-                                <TextBlock
-                                    Text="Configure the UDP multicast connection and telemetry log destination. Settings are saved to disk and preserved across application sessions."
-                                    Classes="label"
-                                    TextWrapping="Wrap"
-                                    Margin="0,0,0,6" />
-
-                                <Grid ColumnDefinitions="200, *" RowDefinitions="Auto, Auto, Auto, Auto">
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Local Ethernet IP" Classes="label"
-                                               VerticalAlignment="Center" />
-                                    <TextBox Grid.Row="0" Grid.Column="1" Text="{Binding SettingLocalEthIp}"
-                                             Margin="0,3" PlaceholderText="e.g. 10.1.1.91" />
-
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Multicast Group" Classes="label"
-                                               VerticalAlignment="Center" Margin="0,6,0,0" />
-                                    <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding SettingMulticastGroup}"
-                                             Margin="0,6,0,0" PlaceholderText="e.g. 239.255.1.1" />
-
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="UDP Port" Classes="label"
-                                               VerticalAlignment="Center" Margin="0,6,0,0" />
-                                    <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding SettingPort}"
-                                                   Minimum="1" Maximum="65535" FormatString="0" Margin="0,6,0,0" />
-
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Telemetry Log File" Classes="label"
-                                               VerticalAlignment="Center" Margin="0,6,0,0" />
-                                    <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding SettingLogFile}"
-                                             Margin="0,6,0,0" PlaceholderText="e.g. telemetry.csv" />
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Kalman Filter Settings Card -->
-                        <Border Classes="card">
-                            <StackPanel Spacing="10">
-                                <TextBlock Text="Kalman Filter &amp; Trajectory Forecast Parameters" Classes="header" />
-                                <TextBlock
-                                    Text="Configure Kalman state estimation. The initial position is dynamically initialized from the first valid GPS packet."
-                                    Classes="label"
-                                    TextWrapping="Wrap"
-                                    Margin="0,0,0,6" />
-
-                                <Grid ColumnDefinitions="200, *" RowDefinitions="Auto, Auto, Auto, Auto">
-                                    <TextBlock Grid.Row="0" Grid.Column="0" Text="Delta T (seconds)" Classes="label"
-                                               VerticalAlignment="Center" />
-                                    <NumericUpDown Grid.Row="0" Grid.Column="1" Value="{Binding SettingDeltaT}"
-                                                   Minimum="0.01" Maximum="60" Increment="0.1" FormatString="0.00"
-                                                   Margin="0,3" />
-
-                                    <TextBlock Grid.Row="1" Grid.Column="0" Text="Measurement Std Dev" Classes="label"
-                                               VerticalAlignment="Center" Margin="0,6,0,0" />
-                                    <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding SettingMeasStd}"
-                                                   Minimum="0.00001" Maximum="10" Increment="0.001"
-                                                   FormatString="0.0000" Margin="0,6,0,0" />
-
-                                    <TextBlock Grid.Row="2" Grid.Column="0" Text="Acceleration Std Dev" Classes="label"
-                                               VerticalAlignment="Center" Margin="0,6,0,0" />
-                                    <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding SettingAccelStd}"
-                                                   Minimum="0.00001" Maximum="10" Increment="0.001"
-                                                   FormatString="0.0000" Margin="0,6,0,0" />
-
-                                    <TextBlock Grid.Row="3" Grid.Column="0" Text="Prediction Steps Ahead"
-                                               Classes="label" VerticalAlignment="Center" Margin="0,6,0,0" />
-                                    <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding SettingStepsToPredict}"
-                                                   Minimum="1" Maximum="100" FormatString="0" Margin="0,6,0,0" />
-                                </Grid>
-                            </StackPanel>
-                        </Border>
-
-                        <!-- Actions & Status Card -->
-                        <Border Classes="card">
-                            <StackPanel Spacing="10">
-                                <TextBlock Text="Persistence &amp; Actions" Classes="header" />
-                                <StackPanel Orientation="Horizontal" Spacing="12">
-                                    <Button Content="Save &amp; Apply Settings"
-                                            Command="{Binding SaveSettingsCommand}"
-                                            Background="{DynamicResource SystemAccentColor}"
-                                            Foreground="White"
-                                            FontWeight="SemiBold"
-                                            Padding="14,8"
-                                            CornerRadius="6" />
-
-                                    <Button Content="Reset to Defaults"
-                                            Command="{Binding ResetSettingsToDefaultCommand}"
-                                            Padding="14,8"
-                                            CornerRadius="6" />
-                                </StackPanel>
-
-                                <TextBlock Text="{Binding SettingsStatusMessage}"
-                                           Foreground="{DynamicResource SystemAccentColor}"
-                                           FontWeight="Medium"
-                                           FontSize="13"
-                                           Margin="0,4,0,0" />
-                            </StackPanel>
-                        </Border>
-                    </StackPanel>
-                </ScrollViewer>
-            </TabItem>
-        </TabControl>
-
-        <!-- Bottom Status Bar -->
-        <Border Grid.Row="2" Classes="card" Margin="6,8,6,0" Padding="12,6">
-            <Grid ColumnDefinitions="Auto, *, Auto">
-                <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
-                    <TextBlock Text="Status:" Classes="label" />
-                    <TextBlock Text="{Binding ConnectionStatus}" FontWeight="Medium" FontSize="12" Foreground="White" />
-                </StackPanel>
-
-                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="16">
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <TextBlock Text="Total Packets:" Classes="label" />
-                        <TextBlock Text="{Binding TotalPacketsReceived}" FontWeight="Bold" FontSize="12"
-                                   Foreground="White" />
-                    </StackPanel>
-                    <StackPanel Orientation="Horizontal" Spacing="6">
-                        <TextBlock Text="Last Packet:" Classes="label" />
-                        <TextBlock Text="{Binding LastPacketTimeString}" FontWeight="Medium" FontSize="12"
-                                   Foreground="White" />
-                    </StackPanel>
-                </StackPanel>
             </Grid>
-        </Border>
+
+            <!-- ========== Graphs ========== -->
+            <views:TelemetryChartsView IsVisible="{Binding IsGraphsTab}" />
+
+            <!-- ========== Settings ========== -->
+            <ScrollViewer IsVisible="{Binding IsSettingsTab}" HorizontalScrollBarVisibility="Disabled"
+                          VerticalScrollBarVisibility="Auto">
+                <Grid ColumnDefinitions="*, *">
+                    <StackPanel Grid.Column="0" Spacing="16" Margin="0,0,8,0">
+                        <Border Classes="panel">
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="Network &amp; Telemetry Stream Configuration" />
+                                <TextBlock Classes="desc"
+                                           Text="Configure the UDP multicast connection and telemetry log destination. Settings are saved to disk and preserved across application sessions." />
+
+                                    <Grid ColumnDefinitions="210, *" Margin="0,4">
+                                        <TextBlock Classes="k" Text="Local Ethernet IP" />
+                                        <TextBox Grid.Column="1" Text="{Binding SettingLocalEthIp}" PlaceholderText="e.g. 10.1.1.91" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="210, *" Margin="0,4">
+                                        <TextBlock Classes="k" Text="Multicast Group" />
+                                        <TextBox Grid.Column="1" Text="{Binding SettingMulticastGroup}" PlaceholderText="e.g. 239.255.1.1" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="210, *" Margin="0,4">
+                                        <TextBlock Classes="k" Text="UDP Port" />
+                                        <NumericUpDown Grid.Column="1" Value="{Binding SettingPort}" Minimum="1" Maximum="65535" Increment="1" FormatString="0" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="210, *" Margin="0,4">
+                                        <TextBlock Classes="k" Text="Telemetry Log File" />
+                                        <TextBox Grid.Column="1" Text="{Binding SettingLogFile}" PlaceholderText="e.g. telemetry.csv" />
+                                    </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="panel">
+                            <StackPanel>
+                                <TextBlock Classes="title" Text="Kalman Filter &amp; Trajectory Forecast Parameters" />
+                                <TextBlock Classes="desc"
+                                           Text="Configure Kalman state estimation. The initial position is dynamically initialized from the first valid GPS packet." />
+
+                                    <Grid ColumnDefinitions="210, *" Margin="0,4">
+                                        <TextBlock Classes="k" Text="Delta T (seconds)" />
+                                        <NumericUpDown Grid.Column="1" Value="{Binding SettingDeltaT}" Minimum="0.01" Maximum="60" Increment="0.1" FormatString="0.00" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="210, *" Margin="0,4">
+                                        <TextBlock Classes="k" Text="Measurement Std Dev" />
+                                        <NumericUpDown Grid.Column="1" Value="{Binding SettingMeasStd}" Minimum="0.00001" Maximum="10" Increment="0.001" FormatString="0.0000" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="210, *" Margin="0,4">
+                                        <TextBlock Classes="k" Text="Acceleration Std Dev" />
+                                        <NumericUpDown Grid.Column="1" Value="{Binding SettingAccelStd}" Minimum="0.00001" Maximum="10" Increment="0.001" FormatString="0.0000" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="210, *" Margin="0,4">
+                                        <TextBlock Classes="k" Text="Prediction Steps Ahead" />
+                                        <NumericUpDown Grid.Column="1" Value="{Binding SettingStepsToPredict}" Minimum="1" Maximum="100" Increment="1" FormatString="0" />
+                                    </Grid>
+                            </StackPanel>
+                        </Border>
+
+                        <Border Classes="panel">
+                            <StackPanel Spacing="10">
+                                <TextBlock Classes="title" Text="Persistence &amp; Actions" />
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <Button Classes="primary" Content="Save &amp; Apply Settings"
+                                            Command="{Binding SaveSettingsCommand}" />
+                                    <Button Classes="quiet" Height="44" Content="Reset to Defaults"
+                                            Command="{Binding ResetSettingsToDefaultCommand}" />
+                                </StackPanel>
+                                <TextBlock Classes="status" Classes.ok="{Binding SettingsSaved}"
+                                           Text="{Binding SettingsStatusMessage}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </Border>
+                    </StackPanel>
+
+                    <Border Grid.Column="1" Classes="panel" Margin="8,0,0,0" VerticalAlignment="Top">
+                        <StackPanel>
+                            <TextBlock Classes="title" Text="Alert Limits &amp; Data Health" />
+                            <TextBlock Classes="desc"
+                                       Text="A value outside its limits turns its row and graph red. Leave a field empty for no limit. Base limits on test-flight data. Limits apply when you click Save &amp; Apply Settings." />
+                            <Grid ColumnDefinitions="*, 132, 132" Margin="0,4,0,6">
+                                <TextBlock Classes="th" Text="VALUE" />
+                                <TextBlock Grid.Column="1" Classes="th" Margin="10,0,0,0" Text="MIN" />
+                                <TextBlock Grid.Column="2" Classes="th" Margin="10,0,0,0" Text="MAX" />
+                            </Grid>
+                            <ItemsControl ItemsSource="{Binding AlertLimits}">
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate x:DataType="vm:AlertLimitViewModel">
+                                        <Border Classes="row">
+                                            <Grid ColumnDefinitions="*, 132, 132">
+                                                <TextBlock Classes="k" Classes.alert="{Binding IsTripped}" Text="{Binding NameWithUnit}" />
+                                                <TextBox Grid.Column="1" Classes="small" Margin="10,0,0,0" Text="{Binding MinText}" PlaceholderText="no limit" />
+                                                <TextBox Grid.Column="2" Classes="small" Margin="10,0,0,0" Text="{Binding MaxText}" PlaceholderText="no limit" />
+                                            </Grid>
+                                        </Border>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+
+                            <TextBlock Classes="lbl" Foreground="{StaticResource Ct.DimBrush}" Margin="0,18,0,6" Text="DATA HEALTH" />
+
+                                    <Grid ColumnDefinitions="210, *" Margin="0,4">
+                                        <TextBlock Classes="k" Text="Link lost after (s)" />
+                                        <NumericUpDown Grid.Column="1" Value="{Binding SettingLinkLostSeconds}" Minimum="0.5" Maximum="60" Increment="0.5" FormatString="0.0" />
+                                    </Grid>
+
+                                    <Grid ColumnDefinitions="210, *" Margin="0,4">
+                                        <TextBlock Classes="k" Text="Frozen sensor after (identical readings)" />
+                                        <NumericUpDown Grid.Column="1" Value="{Binding SettingFrozenSensorReadings}" Minimum="2" Maximum="1000" Increment="1" FormatString="0" />
+                                    </Grid>
+                            <CheckBox Content="Warn when GPS fix is lost" IsChecked="{Binding SettingWarnOnGpsFixLost}" Margin="0,6,0,0" />
+                            <CheckBox Content="Warn when a value is missing from a packet" IsChecked="{Binding SettingWarnOnMissingValue}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+            </ScrollViewer>
+        </Panel>
+
+        <!-- ===================== Status bar ===================== -->
+        <Grid Grid.Row="2" ColumnDefinitions="Auto, Auto, *, Auto, Auto" Margin="4,0">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Classes="lbl" Text="STATUS:" VerticalAlignment="Center" />
+                <TextBlock Classes="mono" Text="{Binding ConnectionStatus}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="7" Margin="28,0,0,0">
+                <Ellipse Width="8" Height="8" VerticalAlignment="Center" Classes="dot" Classes.lost="{Binding IsLinkLost}" />
+                <TextBlock Classes="linkhealth" Classes.lost="{Binding IsLinkLost}" Text="{Binding LinkHealthText}" />
+            </StackPanel>
+            <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="8" Margin="0,0,28,0">
+                <TextBlock Classes="lbl" Text="TOTAL PACKETS:" VerticalAlignment="Center" />
+                <TextBlock Classes="mono" Text="{Binding TotalPacketsReceived}" />
+            </StackPanel>
+            <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="8">
+                <TextBlock Classes="lbl" Text="LAST PACKET:" VerticalAlignment="Center" />
+                <TextBlock Classes="mono" Text="{Binding LastPacketTimeString}" />
+            </StackPanel>
+        </Grid>
     </Grid>
 </Window>

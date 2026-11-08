@@ -406,4 +406,130 @@ public class TelemetryTests
         Assert.Equal(24, history.Time[^1]);            // newest point kept
         Assert.Equal(history.Time[0], history.Temperature[0]); // lists stay aligned after trimming
     }
+
+    private const string AlertTestPacket =
+        "20,123500,2,10,48.2090,16.3750,260.0,258.5,1011.8,23.1,44.2,0.10,0.02,9.80,1.0,-0.5,0.25,12.0,-13.0,14.0,125.5,-65,4";
+
+    [Fact]
+    public void AlertLimit_ParsesAndChecksBounds()
+    {
+        var limit = new AlertLimitViewModel("Snr", "Signal-to-Noise Ratio", "dB") { MinText = "5", MaxText = "" };
+
+        Assert.True(limit.TryParse(out var min, out var max, out _));
+        Assert.Equal(5.0, min!.Value);
+        Assert.Null(max);
+
+        var saved = limit.Apply(min, max);
+        Assert.NotNull(saved);
+        Assert.True(limit.Check([4]));
+        Assert.Equal("below 5 dB", limit.Reason);
+        Assert.False(limit.Check([5]));
+        Assert.Equal(string.Empty, limit.Reason);
+    }
+
+    [Fact]
+    public void AlertLimit_RejectsBadText()
+    {
+        var limit = new AlertLimitViewModel("Temperature", "Temperature", "°C") { MinText = "abc" };
+        Assert.False(limit.TryParse(out _, out _, out var error));
+        Assert.Contains("Temperature", error);
+
+        limit.MinText = "10";
+        limit.MaxText = "\u22125"; // unicode minus: max -5 is below min 10
+        Assert.False(limit.TryParse(out _, out _, out _));
+
+        limit.MaxText = "";
+        Assert.True(limit.TryParse(out _, out _, out _));
+        Assert.Null(limit.Apply(null, null)); // no bounds: nothing to store
+    }
+
+    [Fact]
+    public void MainViewModel_UpdateWithPacket_TripsAlertLimits()
+    {
+        var vm = new MainViewModel();
+        vm.SnrLimit.Apply(5, null);
+        Assert.True(ProcessedPacket.TryParse(AlertTestPacket, out var packet));
+
+        vm.UpdateWithPacket(packet);
+
+        Assert.True(vm.SnrLimit.IsTripped);
+        Assert.True(vm.SnrGraph.IsAlert);
+        Assert.True(vm.IsRadioAlert);
+        Assert.True(vm.HasAlerts);
+        Assert.Equal("1 Alert · SNR", vm.AlertSummary);
+        Assert.False(vm.TemperatureLimit.IsTripped);
+    }
+
+    [Fact]
+    public void MainViewModel_GpsFixLost_IsReported()
+    {
+        var vm = new MainViewModel();
+        Assert.True(ProcessedPacket.TryParse(AlertTestPacket, out var withFix));
+        Assert.True(ProcessedPacket.TryParse(AlertTestPacket.Replace("123500,2,10", "123500,0,0"), out var noFix));
+
+        vm.UpdateWithPacket(withFix);
+        Assert.False(vm.IsGpsFixLost);
+        vm.UpdateWithPacket(noFix);
+        Assert.True(vm.IsGpsFixLost);
+        Assert.Contains("GPS fix lost", vm.ActiveAlerts);
+    }
+
+    [Fact]
+    public void MainViewModel_FrozenSensor_IsReported()
+    {
+        var vm = new MainViewModel();
+        Assert.True(ProcessedPacket.TryParse(AlertTestPacket, out var packet));
+
+        for (var i = 0; i < vm.Settings.FrozenSensorReadings - 1; i++) vm.UpdateWithPacket(packet);
+        Assert.False(vm.HasFrozenSensors);
+
+        vm.UpdateWithPacket(packet);
+        Assert.True(vm.HasFrozenSensors);
+        Assert.Contains("Temperature", vm.FrozenSensorsText);
+    }
+
+    [Fact]
+    public void MainViewModel_Pins_DriveGraphsTab()
+    {
+        var vm = new MainViewModel();
+        Assert.Equal(0, vm.PinnedCount);
+
+        vm.ShowTabCommand.Execute("1");
+        Assert.True(vm.IsGraphsTab);
+        Assert.True(vm.IsAllGraphsView); // nothing pinned: open on All
+
+        vm.RssiGraph.TogglePinCommand.Execute(null);
+        Assert.Equal(1, vm.PinnedCount);
+        Assert.Equal("Pinned (1)", vm.PinnedButtonText);
+        Assert.Contains("Rssi", vm.Settings.PinnedGraphs);
+
+        vm.ShowPinnedGraphsCommand.Execute(null);
+        Assert.True(vm.RssiGraph.IsShownInGraphsTab);
+        Assert.False(vm.TemperatureGraph.IsShownInGraphsTab);
+
+        vm.ShowAllGraphsCommand.Execute(null);
+        Assert.True(vm.TemperatureGraph.IsShownInGraphsTab);
+    }
+
+    [Fact]
+    public void AppSettings_SaveAndLoad_PreservesPinsAndLimits()
+    {
+        var tempFile = Path.Combine(Path.GetTempPath(), $"settings_test_{Guid.NewGuid()}.json");
+        try
+        {
+            var settings = new AppSettings { PinnedGraphs = ["Altitude", "Rssi"], LinkLostSeconds = 3.5 };
+            settings.AlertLimits["Snr"] = new AlertLimit { Min = 5 };
+            settings.Save(tempFile);
+
+            var loaded = AppSettings.Load(tempFile);
+            Assert.Equal(new[] { "Altitude", "Rssi" }, loaded.PinnedGraphs);
+            Assert.Equal(5.0, loaded.AlertLimits["Snr"].Min!.Value);
+            Assert.Null(loaded.AlertLimits["Snr"].Max);
+            Assert.Equal(3.5, loaded.LinkLostSeconds);
+        }
+        finally
+        {
+            if (File.Exists(tempFile)) File.Delete(tempFile);
+        }
+    }
 }

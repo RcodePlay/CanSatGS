@@ -1,0 +1,212 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:vm="using:CanSatGSUI.ViewModels"
+             xmlns:views="using:CanSatGSUI.Views"
+             xmlns:scottplot="using:ScottPlot.Avalonia"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="720"
+             x:Class="CanSatGSUI.Views.DashboardGraphsView"
+             x:DataType="vm:MainViewModel">
+
+    <!-- Dashboard, Graphs view: every value as a small live graph (last 60 s) with its current number. -->
+    <UniformGrid Columns="4" Rows="3">
+            <Border Classes="panel paper mini">
+                <StackPanel>
+                    <TextBlock Classes="title" FontSize="16" Text="Position &amp; Navigation" Margin="0,0,0,4" />
+                    <Grid ColumnDefinitions="*, Auto" Classes="row"><TextBlock Classes="k" Text="Latitude" /><TextBlock Grid.Column="1" Classes="v" Text="{Binding Latitude, StringFormat='{}{0:F5}°'}" /></Grid>
+                    <Grid ColumnDefinitions="*, Auto" Classes="row"><TextBlock Classes="k" Text="Longitude" /><TextBlock Grid.Column="1" Classes="v" Text="{Binding Longitude, StringFormat='{}{0:F5}°'}" /></Grid>
+                    <Grid ColumnDefinitions="*, Auto" Classes="row"><TextBlock Classes="k" Text="Satellites Tracked" /><TextBlock Grid.Column="1" Classes="v" Text="{Binding SatelliteCount}" /></Grid>
+                    <Grid ColumnDefinitions="*, Auto" Classes="row"><TextBlock Classes="k" Text="Fix Status" /><TextBlock Grid.Column="1" Classes="v" Classes.alert="{Binding IsGpsFixLost}" Text="{Binding GpsFixStatus}" /></Grid>
+                </StackPanel>
+            </Border>
+            <Border Classes="panel mini" Classes.alert="{Binding AltitudeGraph.IsAlert}">
+                <Grid RowDefinitions="Auto, Auto, Auto, *">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <TextBlock Classes="mininame" Text="Altitude" />
+                        <views:PinButton Grid.Column="1" DataContext="{Binding AltitudeGraph}" Margin="0,-6,-8,0" />
+                    </Grid>
+                    <StackPanel Grid.Row="1" Classes="readout" HorizontalAlignment="Left">
+                        <TextBlock Classes="minifig" Classes.alert="{Binding BaroAltitudeLimit.IsTripped}" Text="{Binding AltitudeBarometer, StringFormat='{}{0:F1}'}" />
+                        <TextBlock Classes="u" Text="m baro" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" Margin="0,2,0,2">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <Border Classes="key" Background="{StaticResource Ct.DataBrush}" />
+                            <TextBlock Classes="keytext" Text="{Binding AltitudeBarometer, StringFormat='Baro {0:F1}'}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <Border Classes="key" Background="{StaticResource Ct.TextBrush}" />
+                            <TextBlock Classes="keytext" Text="{Binding GpsAltitude, StringFormat='GPS {0:F1}'}" />
+                        </StackPanel>
+                    </StackPanel>
+                    <scottplot:AvaPlot Grid.Row="3" x:Name="MiniAltitudePlot" IsHitTestVisible="False" Margin="0,6,0,0" MinHeight="60" />
+                </Grid>
+            </Border>
+            <Border Classes="panel mini" Classes.alert="{Binding TemperatureGraph.IsAlert}">
+                <Grid RowDefinitions="Auto, Auto, Auto, *">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <TextBlock Classes="mininame" Text="Temperature" />
+                        <views:PinButton Grid.Column="1" DataContext="{Binding TemperatureGraph}" Margin="0,-6,-8,0" />
+                    </Grid>
+                    <StackPanel Grid.Row="1" Classes="readout" HorizontalAlignment="Left">
+                        <TextBlock Classes="minifig" Classes.alert="{Binding TemperatureLimit.IsTripped}" Text="{Binding Temperature, StringFormat='{}{0:F1}'}" />
+                        <TextBlock Classes="u" Text="°C" />
+                        <TextBlock Classes="why" Text="{Binding TemperatureLimit.Reason}" Margin="8,0,0,0" />
+                    </StackPanel>
+                    <scottplot:AvaPlot Grid.Row="3" x:Name="MiniTemperaturePlot" IsHitTestVisible="False" Margin="0,6,0,0" MinHeight="60" />
+                </Grid>
+            </Border>
+            <Border Classes="panel mini" Classes.alert="{Binding PressureGraph.IsAlert}">
+                <Grid RowDefinitions="Auto, Auto, Auto, *">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <TextBlock Classes="mininame" Text="Pressure" />
+                        <views:PinButton Grid.Column="1" DataContext="{Binding PressureGraph}" Margin="0,-6,-8,0" />
+                    </Grid>
+                    <StackPanel Grid.Row="1" Classes="readout" HorizontalAlignment="Left">
+                        <TextBlock Classes="minifig" Classes.alert="{Binding PressureLimit.IsTripped}" Text="{Binding Pressure, StringFormat='{}{0:F2}'}" />
+                        <TextBlock Classes="u" Text="hPa" />
+                        <TextBlock Classes="why" Text="{Binding PressureLimit.Reason}" Margin="8,0,0,0" />
+                    </StackPanel>
+                    <scottplot:AvaPlot Grid.Row="3" x:Name="MiniPressurePlot" IsHitTestVisible="False" Margin="0,6,0,0" MinHeight="60" />
+                </Grid>
+            </Border>
+            <Border Classes="panel mini" Classes.alert="{Binding HumidityGraph.IsAlert}">
+                <Grid RowDefinitions="Auto, Auto, Auto, *">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <TextBlock Classes="mininame" Text="Humidity" />
+                        <views:PinButton Grid.Column="1" DataContext="{Binding HumidityGraph}" Margin="0,-6,-8,0" />
+                    </Grid>
+                    <StackPanel Grid.Row="1" Classes="readout" HorizontalAlignment="Left">
+                        <TextBlock Classes="minifig" Classes.alert="{Binding HumidityLimit.IsTripped}" Text="{Binding Humidity, StringFormat='{}{0:F1}'}" />
+                        <TextBlock Classes="u" Text="%" />
+                        <TextBlock Classes="why" Text="{Binding HumidityLimit.Reason}" Margin="8,0,0,0" />
+                    </StackPanel>
+                    <scottplot:AvaPlot Grid.Row="3" x:Name="MiniHumidityPlot" IsHitTestVisible="False" Margin="0,6,0,0" MinHeight="60" />
+                </Grid>
+            </Border>
+            <Border Classes="panel mini" Classes.alert="{Binding AccelerationGraph.IsAlert}">
+                <Grid RowDefinitions="Auto, Auto, Auto, *">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <TextBlock Classes="mininame" Text="Acceleration" />
+                        <views:PinButton Grid.Column="1" DataContext="{Binding AccelerationGraph}" Margin="0,-6,-8,0" />
+                    </Grid>
+                    <StackPanel Grid.Row="1" Classes="readout" HorizontalAlignment="Left">
+                        <TextBlock Classes="minifig" Classes.alert="{Binding AccelMagnitudeLimit.IsTripped}" Text="{Binding AccelerationMagnitude, StringFormat='{}{0:F2}'}" />
+                        <TextBlock Classes="u" Text="m/s² |a|" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" Margin="0,2,0,2">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <Border Classes="key" Background="{StaticResource Ct.TextBrush}" />
+                            <TextBlock Classes="keytext" Text="{Binding AccelerationX, StringFormat='X {0:F2}'}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <Border Classes="key" Background="{StaticResource Ct.MutedBrush}" />
+                            <TextBlock Classes="keytext" Text="{Binding AccelerationY, StringFormat='Y {0:F2}'}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <Border Classes="key" Background="{StaticResource Ct.DimBrush}" />
+                            <TextBlock Classes="keytext" Text="{Binding AccelerationZ, StringFormat='Z {0:F2}'}" />
+                        </StackPanel>
+                    </StackPanel>
+                    <scottplot:AvaPlot Grid.Row="3" x:Name="MiniAccelerationPlot" IsHitTestVisible="False" Margin="0,6,0,0" MinHeight="60" />
+                </Grid>
+            </Border>
+            <Border Classes="panel mini" Classes.alert="{Binding AngularVelocityGraph.IsAlert}">
+                <Grid RowDefinitions="Auto, Auto, Auto, *">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <TextBlock Classes="mininame" Text="Angular Velocity" />
+                        <views:PinButton Grid.Column="1" DataContext="{Binding AngularVelocityGraph}" Margin="0,-6,-8,0" />
+                    </Grid>
+                    <StackPanel Grid.Row="1" Classes="readout" HorizontalAlignment="Left">
+                        <TextBlock Classes="minifig" Classes.alert="{Binding AngularVelocityLimit.IsTripped}" Text="{Binding OmegaZDegreesPerSecond, StringFormat='{}{0:F2}'}" />
+                        <TextBlock Classes="u" Text="°/s Z" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" Margin="0,2,0,2">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <Border Classes="key" Background="{StaticResource Ct.TextBrush}" />
+                            <TextBlock Classes="keytext" Text="{Binding OmegaXDegreesPerSecond, StringFormat='X {0:F1}'}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <Border Classes="key" Background="{StaticResource Ct.MutedBrush}" />
+                            <TextBlock Classes="keytext" Text="{Binding OmegaYDegreesPerSecond, StringFormat='Y {0:F1}'}" />
+                        </StackPanel>
+                    </StackPanel>
+                    <scottplot:AvaPlot Grid.Row="3" x:Name="MiniAngularVelocityPlot" IsHitTestVisible="False" Margin="0,6,0,0" MinHeight="60" />
+                </Grid>
+            </Border>
+            <Border Classes="panel mini" Classes.alert="{Binding MagneticFieldGraph.IsAlert}">
+                <Grid RowDefinitions="Auto, Auto, Auto, *">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <TextBlock Classes="mininame" Text="Magnetic Field" />
+                        <views:PinButton Grid.Column="1" DataContext="{Binding MagneticFieldGraph}" Margin="0,-6,-8,0" />
+                    </Grid>
+                    <StackPanel Grid.Row="1" Classes="readout" HorizontalAlignment="Left">
+                        <TextBlock Classes="minifig" Classes.alert="{Binding MagneticFieldLimit.IsTripped}" Text="{Binding MagneticFieldZ, StringFormat='{}{0:F2}'}" />
+                        <TextBlock Classes="u" Text="µT Z" />
+                    </StackPanel>
+                    <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="10" Margin="0,2,0,2">
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <Border Classes="key" Background="{StaticResource Ct.TextBrush}" />
+                            <TextBlock Classes="keytext" Text="{Binding MagneticFieldX, StringFormat='X {0:F1}'}" />
+                        </StackPanel>
+                        <StackPanel Orientation="Horizontal" Spacing="4">
+                            <Border Classes="key" Background="{StaticResource Ct.MutedBrush}" />
+                            <TextBlock Classes="keytext" Text="{Binding MagneticFieldY, StringFormat='Y {0:F1}'}" />
+                        </StackPanel>
+                    </StackPanel>
+                    <scottplot:AvaPlot Grid.Row="3" x:Name="MiniMagneticFieldPlot" IsHitTestVisible="False" Margin="0,6,0,0" MinHeight="60" />
+                </Grid>
+            </Border>
+            <Border Classes="panel mini" Classes.alert="{Binding AzimuthGraph.IsAlert}">
+                <Grid RowDefinitions="Auto, Auto, Auto, *">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <TextBlock Classes="mininame" Text="Azimuth (Theta)" />
+                        <views:PinButton Grid.Column="1" DataContext="{Binding AzimuthGraph}" Margin="0,-6,-8,0" />
+                    </Grid>
+                    <StackPanel Grid.Row="1" Classes="readout" HorizontalAlignment="Left">
+                        <TextBlock Classes="minifig" Text="{Binding Theta, StringFormat='{}{0:F2}'}" />
+                        <TextBlock Classes="u" Text="°" />
+                    </StackPanel>
+                    <scottplot:AvaPlot Grid.Row="3" x:Name="MiniAzimuthPlot" IsHitTestVisible="False" Margin="0,6,0,0" MinHeight="60" />
+                </Grid>
+            </Border>
+            <Border Classes="panel mini" Classes.alert="{Binding RssiGraph.IsAlert}">
+                <Grid RowDefinitions="Auto, Auto, Auto, *">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <TextBlock Classes="mininame" Text="RSSI" />
+                        <views:PinButton Grid.Column="1" DataContext="{Binding RssiGraph}" Margin="0,-6,-8,0" />
+                    </Grid>
+                    <StackPanel Grid.Row="1" Classes="readout" HorizontalAlignment="Left">
+                        <TextBlock Classes="minifig" Classes.alert="{Binding RssiLimit.IsTripped}" Text="{Binding Rssi, StringFormat='{}{0:F0}'}" />
+                        <TextBlock Classes="u" Text="dBm" />
+                        <TextBlock Classes="why" Text="{Binding RssiLimit.Reason}" Margin="8,0,0,0" />
+                    </StackPanel>
+                    <scottplot:AvaPlot Grid.Row="3" x:Name="MiniRssiPlot" IsHitTestVisible="False" Margin="0,6,0,0" MinHeight="60" />
+                </Grid>
+            </Border>
+            <Border Classes="panel mini" Classes.alert="{Binding SnrGraph.IsAlert}">
+                <Grid RowDefinitions="Auto, Auto, Auto, *">
+                    <Grid ColumnDefinitions="*, Auto">
+                        <TextBlock Classes="mininame" Text="Signal-to-Noise Ratio" />
+                        <views:PinButton Grid.Column="1" DataContext="{Binding SnrGraph}" Margin="0,-6,-8,0" />
+                    </Grid>
+                    <StackPanel Grid.Row="1" Classes="readout" HorizontalAlignment="Left">
+                        <TextBlock Classes="minifig" Classes.alert="{Binding SnrLimit.IsTripped}" Text="{Binding Snr, StringFormat='{}{0:F0}'}" />
+                        <TextBlock Classes="u" Text="dB" />
+                        <TextBlock Classes="why" Text="{Binding SnrLimit.Reason}" Margin="8,0,0,0" />
+                    </StackPanel>
+                    <scottplot:AvaPlot Grid.Row="3" x:Name="MiniSnrPlot" IsHitTestVisible="False" Margin="0,6,0,0" MinHeight="60" />
+                </Grid>
+            </Border>
+            <Border Classes="panel mini" Classes.alert="{Binding IsLinkLost}">
+                <StackPanel>
+                    <TextBlock Classes="title" FontSize="16" Text="Link Health" Margin="0,0,0,4" />
+                    <Grid ColumnDefinitions="*, Auto" Classes="row"><TextBlock Classes="k" Text="Total Packets" /><TextBlock Grid.Column="1" Classes="v" Text="{Binding TotalPacketsReceived}" /></Grid>
+                    <Grid ColumnDefinitions="*, Auto" Classes="row"><TextBlock Classes="k" Text="Last Packet" /><TextBlock Grid.Column="1" Classes="v" Classes.alert="{Binding IsLinkLost}" Text="{Binding LastPacketAgeText, StringFormat='{}{0} s ago'}" /></Grid>
+                    <Grid ColumnDefinitions="*, Auto" Classes="row"><TextBlock Classes="k" Text="Frozen sensors" /><TextBlock Grid.Column="1" Classes="v" Classes.alert="{Binding HasFrozenSensors}" Text="{Binding FrozenSensorsText}" TextTrimming="CharacterEllipsis" MaxWidth="150" ToolTip.Tip="{Binding FrozenSensorsText}" /></Grid>
+                    <Grid ColumnDefinitions="*, Auto" Classes="row"><TextBlock Classes="k" Text="Missing values" /><TextBlock Grid.Column="1" Classes="v" Classes.alert="{Binding HasMissingValues}" Text="{Binding MissingValuesText}" /></Grid>
+                </StackPanel>
+            </Border>
+    </UniformGrid>
+</UserControl>

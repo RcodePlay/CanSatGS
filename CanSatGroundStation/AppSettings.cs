@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text.Json;
 
@@ -14,6 +15,24 @@ public class AppSettings
     public double MeasStd { get; set; } = 0.001;
     public double AccelStd { get; set; } = 0.001;
     public int StepsToPredict { get; set; } = 5;
+
+    /// <summary>Keys of the graphs pinned to the Graphs tab (see GraphKeys in the UI project).</summary>
+    public List<string> PinnedGraphs { get; set; } = [];
+
+    /// <summary>Fixed alert limits per measurement key. A missing entry or a null bound means "no limit".</summary>
+    public Dictionary<string, AlertLimit> AlertLimits { get; set; } = new();
+
+    /// <summary>Data health: the link counts as lost after this many seconds without a packet.</summary>
+    public double LinkLostSeconds { get; set; } = 2.0;
+
+    /// <summary>Data health: a sensor counts as frozen after this many identical readings in a row.</summary>
+    public int FrozenSensorReadings { get; set; } = 20;
+
+    /// <summary>Data health: warn when the GPS had a fix and lost it.</summary>
+    public bool WarnOnGpsFixLost { get; set; } = true;
+
+    /// <summary>Data health: warn when a packet contains a missing (NaN) value.</summary>
+    public bool WarnOnMissingValue { get; set; } = true;
 
     public static string DefaultFilePath => Path.Combine(AppContext.BaseDirectory, "settings.json");
 
@@ -48,4 +67,11 @@ public class AppSettings
         var json = JsonSerializer.Serialize(this, options);
         File.WriteAllText(filePath, json);
     }
+}
+
+/// <summary>Min / max alert bounds for one measurement. Null means no bound on that side.</summary>
+public class AlertLimit
+{
+    public double? Min { get; set; }
+    public double? Max { get; set; }
 }

@@ -1,0 +1,18 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:CanSatGSUI.ViewModels"
+             x:Class="CanSatGSUI.Views.PinButton"
+             x:DataType="vm:GraphCardViewModel">
+    <!-- The brand star: outlined = not pinned, filled brass = pinned to the Graphs tab. -->
+    <Button Classes="pin" Command="{Binding TogglePinCommand}"
+            ToolTip.Tip="{Binding PinToolTip}"
+            AutomationProperties.Name="{Binding PinToolTip}">
+        <Panel>
+            <Path Data="{StaticResource StarGeometry}" Width="15" Height="15" Stretch="Uniform"
+                  Fill="{StaticResource Ct.DataBrush}" IsVisible="{Binding IsPinned}" />
+            <Path Data="{StaticResource StarGeometry}" Width="15" Height="15" Stretch="Uniform"
+                  Stroke="{StaticResource Ct.DimBrush}" StrokeThickness="1.3" Fill="Transparent"
+                  IsVisible="{Binding !IsPinned}" />
+        </Panel>
+    </Button>
+</UserControl>

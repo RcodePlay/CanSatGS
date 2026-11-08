@@ -1,40 +1,32 @@
 using System;
 using System.Collections.Generic;
+using System.Collections.Specialized;
+using System.ComponentModel;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
 using CanSatGSUI.ViewModels;
-using ScottPlot.Avalonia;
-using SpColor = ScottPlot.Color;
+using P = CanSatGSUI.Views.ChartPalette;
 
 namespace CanSatGSUI.Views;
 
 /// <summary>
-/// Graphs tab: one live ScottPlot chart per measurement, fed from <see cref="MainViewModel.History"/>.
+/// Graphs tab: one large live ScottPlot chart per measurement, fed from <see cref="MainViewModel.History"/>.
+/// Shows either all graphs or only the pinned ones (the cards' visibility is bound in XAML).
 /// </summary>
 /// <remarks>
-/// ScottPlot draws on Avalonia's render thread, so each chart keeps its own copy of the data and
-/// only changes it while holding <c>Plot.Sync</c>. New points are copied in batches by a timer
-/// (4x per second), so a fast packet rate doesn't redraw 10 charts for every single packet.
+/// New points are copied in batches by a timer (4x per second), so a fast packet rate doesn't
+/// redraw 10 charts for every single packet. Hidden charts aren't redrawn.
 /// </remarks>
 public partial class TelemetryChartsView : UserControl
 {
-    // Colors match the dark palette in App.axaml.
-    private static readonly SpColor FigureBackground = SpColor.FromHex("#241A2C"); // App.CardBackground
-    private static readonly SpColor DataBackground = SpColor.FromHex("#1A1320");
-    private new static readonly SpColor Foreground = SpColor.FromHex("#FFF0B3"); // App.ForegroundBrush
-    private static readonly SpColor GridLines = SpColor.FromHex("#3D2E4A");
-
-    private static readonly SpColor Red = SpColor.FromHex("#FF6B6B");
-    private static readonly SpColor Green = SpColor.FromHex("#6BCB77");
-    private static readonly SpColor Blue = SpColor.FromHex("#4D96FF");
-    private static readonly SpColor Gold = SpColor.FromHex("#FFC857");
-
-    private readonly List<Chart> _charts = [];
+    private readonly List<(LiveChart Chart, Control Card, GraphCardViewModel? Graph)> _charts = [];
     private readonly DispatcherTimer _refreshTimer;
-    private TelemetryHistory? _history;
+    private MainViewModel? _vm;
+    private LiveChart? _altitude;
     private bool _dirty;
+    private bool _forecastDirty;
 
     public TelemetryChartsView()
     {
@@ -46,7 +38,7 @@ public partial class TelemetryChartsView : UserControl
     protected override void OnDataContextChanged(EventArgs e)
     {
         base.OnDataContextChanged(e);
-        Attach((DataContext as MainViewModel)?.History);
+        Attach(DataContext as MainViewModel);
     }
 
     protected override void OnAttachedToVisualTree(VisualTreeAttachmentEventArgs e)
@@ -61,144 +53,132 @@ public partial class TelemetryChartsView : UserControl
         base.OnDetachedFromVisualTree(e);
     }
 
-    private void Attach(TelemetryHistory? history)
+    private void Attach(MainViewModel? vm)
     {
-        if (ReferenceEquals(history, _history)) return;
+        if (ReferenceEquals(vm, _vm)) return;
 
-        if (_history is not null) _history.Changed -= OnHistoryChanged;
-        _history = history;
+        if (_vm is not null)
+        {
+            _vm.History.Changed -= OnHistoryChanged;
+            _vm.PredictedTrajectory.CollectionChanged -= OnForecastChanged;
+            foreach (var g in _vm.Graphs) g.PropertyChanged -= OnGraphPropertyChanged;
+        }
+
+        _vm = vm;
         _charts.Clear();
-        if (history is null) return;
+        _altitude = null;
+        if (vm is null) return;
 
-        history.Changed += OnHistoryChanged;
+        vm.History.Changed += OnHistoryChanged;
+        vm.PredictedTrajectory.CollectionChanged += OnForecastChanged;
+        foreach (var g in vm.Graphs) g.PropertyChanged += OnGraphPropertyChanged;
 
-        _charts.Add(new Chart(AltitudePlot, "m",
-            (history.GpsAltitude, "GPS", Blue),
-            (history.BaroAltitude, "Barometer", Gold)));
-        _charts.Add(new Chart(TemperaturePlot, "°C", (history.Temperature, null, Gold)));
-        _charts.Add(new Chart(PressurePlot, "hPa", (history.Pressure, null, Gold)));
-        _charts.Add(new Chart(HumidityPlot, "%", (history.Humidity, null, Gold)));
-        _charts.Add(new Chart(AccelerationPlot, "m/s²",
-            (history.AccelX, "X", Red),
-            (history.AccelY, "Y", Green),
-            (history.AccelZ, "Z", Blue),
-            (history.AccelMagnitude, "|a|", Gold)));
-        _charts.Add(new Chart(AngularVelocityPlot, "°/s",
-            (history.OmegaX, "X", Red),
-            (history.OmegaY, "Y", Green),
-            (history.OmegaZ, "Z", Blue)));
-        _charts.Add(new Chart(MagneticFieldPlot, "µT",
-            (history.MagX, "X", Red),
-            (history.MagY, "Y", Green),
-            (history.MagZ, "Z", Blue)));
-        _charts.Add(new Chart(AzimuthPlot, "°", (history.Theta, null, Gold)));
-        _charts.Add(new Chart(RssiPlot, "dBm", (history.Rssi, null, Gold)));
-        _charts.Add(new Chart(SnrPlot, "dB", (history.Snr, null, Gold)));
+        // Altitude is the one "paper" chart: ink lines, dashed Kalman forecast.
+        _altitude = new LiveChart(AltitudePlot, "m", mini: false, paper: true, withForecast: true,
+            new SeriesDef(h => h.BaroAltitude, "Barometer", P.Ink),
+            new SeriesDef(h => h.GpsAltitude, "GPS", P.InkSecondary, 1.4f));
+        Add(_altitude, AltitudePlot, vm.AltitudeGraph);
+
+        Add(Single(TemperaturePlot, "°C", h => h.Temperature), TemperaturePlot, vm.TemperatureGraph);
+        Add(Single(PressurePlot, "hPa", h => h.Pressure), PressurePlot, vm.PressureGraph);
+        Add(Single(HumidityPlot, "%", h => h.Humidity), HumidityPlot, vm.HumidityGraph);
+        Add(new LiveChart(AccelerationPlot, "m/s²", false, false, false,
+            new SeriesDef(h => h.AccelMagnitude, "|a|", P.Data),
+            new SeriesDef(h => h.AccelX, "X", P.Text, 1.2f),
+            new SeriesDef(h => h.AccelY, "Y", P.Muted, 1.2f),
+            new SeriesDef(h => h.AccelZ, "Z", P.Dim, 1.2f)), AccelerationPlot, vm.AccelerationGraph);
+        Add(new LiveChart(AngularVelocityPlot, "°/s", false, false, false,
+            new SeriesDef(h => h.OmegaZ, "Z", P.Data),
+            new SeriesDef(h => h.OmegaX, "X", P.Text, 1.2f),
+            new SeriesDef(h => h.OmegaY, "Y", P.Muted, 1.2f)), AngularVelocityPlot, vm.AngularVelocityGraph);
+        Add(new LiveChart(MagneticFieldPlot, "µT", false, false, false,
+            new SeriesDef(h => h.MagZ, "Z", P.Data),
+            new SeriesDef(h => h.MagX, "X", P.Text, 1.2f),
+            new SeriesDef(h => h.MagY, "Y", P.Muted, 1.2f)), MagneticFieldPlot, vm.MagneticFieldGraph);
+        Add(Single(AzimuthPlot, "°", h => h.Theta), AzimuthPlot, vm.AzimuthGraph);
+        Add(Single(RssiPlot, "dBm", h => h.Rssi), RssiPlot, vm.RssiGraph);
+        Add(Single(SnrPlot, "dB", h => h.Snr), SnrPlot, vm.SnrGraph);
 
         _dirty = true;
+        _forecastDirty = true;
         RefreshCharts();
+    }
+
+    private static LiveChart Single(ScottPlot.Avalonia.AvaPlot view, string unit, Func<TelemetryHistory, List<double>> source)
+        => new(view, unit, false, false, false, new SeriesDef(source, null, P.Data));
+
+    private void Add(LiveChart chart, Control plot, GraphCardViewModel graph)
+    {
+        // The card is the Border around the chart (Border > StackPanel > AvaPlot);
+        // its IsVisible is bound to the Pinned / All view.
+        var card = (plot.Parent as Control)?.Parent as Control ?? plot;
+        _charts.Add((chart, card, graph));
+        chart.SetAlert(graph.IsAlert);
     }
 
     private void OnHistoryChanged() => _dirty = true;
 
+    private void OnForecastChanged(object? sender, NotifyCollectionChangedEventArgs e) => _forecastDirty = true;
+
+    private void OnGraphPropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is not GraphCardViewModel graph) return;
+
+        if (e.PropertyName == nameof(GraphCardViewModel.IsAlert))
+        {
+            foreach (var c in _charts)
+            {
+                if (ReferenceEquals(c.Graph, graph)) c.Chart.SetAlert(graph.IsAlert);
+            }
+        }
+        else if (e.PropertyName == nameof(GraphCardViewModel.IsShownInGraphsTab))
+        {
+            // A chart that was hidden missed updates: redraw on the next tick.
+            _dirty = true;
+        }
+    }
+
     private void RefreshCharts()
     {
-        if (!_dirty || _history is null) return;
+        if (_vm is null || !IsEffectivelyVisible) return;
+
+        if (_forecastDirty && _altitude is not null)
+        {
+            _forecastDirty = false;
+            var xs = new List<double>();
+            var ys = new List<double>();
+            if (_vm.HasTrajectoryForecast && _vm.History.Count > 0)
+            {
+                // The forecast starts at the latest GPS point.
+                var now = _vm.History.Time[^1];
+                xs.Add(now);
+                ys.Add(_vm.History.GpsAltitude[^1]);
+                foreach (var p in _vm.PredictedTrajectory)
+                {
+                    xs.Add(now + p.DeltaSeconds);
+                    ys.Add(p.Altitude);
+                }
+            }
+
+            _altitude.SetForecast(xs, ys);
+        }
+
+        if (!_dirty) return;
         _dirty = false;
 
         var follow = FollowLiveCheckBox.IsChecked == true;
-        foreach (var chart in _charts) chart.Update(_history, autoScale: follow);
+        foreach (var c in _charts)
+        {
+            if (c.Card.IsVisible) c.Chart.Update(_vm.History, autoScale: follow);
+            else _dirty = true; // catch up when it becomes visible
+        }
+
+        // Only hidden charts left behind: no need to keep re-running every tick.
+        if (_dirty && _charts.TrueForAll(c => !c.Card.IsVisible)) _dirty = false;
     }
 
     private void OnFitAllClick(object? sender, RoutedEventArgs e)
     {
-        foreach (var chart in _charts) chart.FitAll();
-    }
-
-    /// <summary>One AvaPlot plus its private, render-thread-safe copy of the data.</summary>
-    private sealed class Chart
-    {
-        private readonly AvaPlot _view;
-        private readonly List<double> _xs = [];
-        private readonly (List<double> Source, List<double> Target)[] _series;
-        private int _generation = -1;
-
-        public Chart(AvaPlot view, string yLabel, params (List<double> Source, string? Name, SpColor Color)[] series)
-        {
-            _view = view;
-            _series = new (List<double>, List<double>)[series.Length];
-
-            var plot = view.Plot;
-            lock (plot.Sync)
-            {
-                plot.Clear();
-
-                plot.FigureBackground.Color = FigureBackground;
-                plot.DataBackground.Color = DataBackground;
-                plot.Axes.Color(Foreground);
-                plot.Grid.MajorLineColor = GridLines;
-                plot.XLabel("Mission time (s)");
-                plot.YLabel(yLabel);
-
-                for (var i = 0; i < series.Length; i++)
-                {
-                    var target = new List<double>();
-                    _series[i] = (series[i].Source, target);
-
-                    var scatter = plot.Add.Scatter(_xs, target);
-                    scatter.Color = series[i].Color;
-                    scatter.LineWidth = 2;
-                    scatter.MarkerSize = 0;
-                    if (series[i].Name is { } name) scatter.LegendText = name;
-                }
-
-                if (series.Length > 1)
-                {
-                    plot.ShowLegend();
-                    plot.Legend.BackgroundColor = FigureBackground;
-                    plot.Legend.FontColor = Foreground;
-                    plot.Legend.OutlineColor = GridLines;
-                }
-            }
-
-            view.Refresh();
-        }
-
-        /// <summary>Copies points that are new since the last update into the chart and redraws it.</summary>
-        public void Update(TelemetryHistory history, bool autoScale)
-        {
-            lock (_view.Plot.Sync)
-            {
-                // Points were removed (Clear / trimming): start over.
-                if (_generation != history.Generation)
-                {
-                    _xs.Clear();
-                    foreach (var s in _series) s.Target.Clear();
-                    _generation = history.Generation;
-                }
-
-                var start = _xs.Count;
-                var count = history.Count - start;
-                if (count > 0)
-                {
-                    _xs.AddRange(history.Time.GetRange(start, count));
-                    foreach (var s in _series) s.Target.AddRange(s.Source.GetRange(start, count));
-                }
-
-                if (autoScale) _view.Plot.Axes.AutoScale();
-            }
-
-            _view.Refresh();
-        }
-
-        public void FitAll()
-        {
-            lock (_view.Plot.Sync)
-            {
-                _view.Plot.Axes.AutoScale();
-            }
-
-            _view.Refresh();
-        }
+        foreach (var c in _charts) c.Chart.FitAll();
     }
 }
