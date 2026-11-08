@@ -53,11 +53,12 @@
             <SolidColorBrush x:Key="App.AccentBrush" Color="{StaticResource Ct.Line}" />
             <SolidColorBrush x:Key="App.CardBackground" Color="{StaticResource Ct.Panel}" />
 
-            <!-- Fonts. Fraunces / Jost / Space Mono are used when installed (or embedded later),
-                 otherwise the fallbacks after them. -->
-            <FontFamily x:Key="Ct.DisplayFont">Fraunces, Georgia, Times New Roman, serif</FontFamily>
-            <FontFamily x:Key="Ct.TextFont">Jost, Segoe UI, Inter, sans-serif</FontFamily>
-            <FontFamily x:Key="Ct.MonoFont">Space Mono, Consolas, Cascadia Mono, DejaVu Sans Mono, monospace</FontFamily>
+            <!-- Fonts: Fraunces speaks, Jost explains, Space Mono measures. Embedded in Assets/Fonts. -->
+            <FontFamily x:Key="Ct.DisplayFont">avares://CanSatGSUI/Assets/Fonts#Fraunces</FontFamily>
+            <FontFamily x:Key="Ct.TextFont">avares://CanSatGSUI/Assets/Fonts#Jost</FontFamily>
+            <FontFamily x:Key="Ct.MonoFont">avares://CanSatGSUI/Assets/Fonts#Space Mono</FontFamily>
+            <!-- Fluent controls (TextBox, CheckBox, TabItem...) use this one. -->
+            <FontFamily x:Key="ContentControlThemeFontFamily">avares://CanSatGSUI/Assets/Fonts#Jost</FontFamily>
 
             <!-- The CanTauri four-point star (pin button, Pinned view). -->
             <StreamGeometry x:Key="StarGeometry">M 8 0 Q 10.08 5.92 16 8 Q 10.08 10.08 8 16 Q 5.92 10.08 0 8 Q 5.92 5.92 8 0 Z</StreamGeometry>
