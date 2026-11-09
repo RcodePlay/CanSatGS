@@ -70,6 +70,15 @@ public sealed partial class AlertLimitViewModel : ObservableObject
     }
 
     /// <summary>
+    /// Empties the text boxes only. The limits in force stay until Save &amp; Apply Settings.
+    /// </summary>
+    public void ClearText()
+    {
+        MinText = string.Empty;
+        MaxText = string.Empty;
+    }
+
+    /// <summary>
     /// Parses the text boxes. Returns false (and changes nothing) when a box holds something that isn't a number.
     /// </summary>
     public bool TryParse(out double? min, out double? max, out string error)

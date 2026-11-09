@@ -280,7 +280,12 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
     }
 
-    private void LoadSettingsIntoProperties(AppSettings s)
+    /// <param name="s">Settings to show.</param>
+    /// <param name="formOnly">
+    /// True for Reset to Defaults: only the form changes; the alert limits in force stay
+    /// until Save &amp; Apply Settings, like every other setting.
+    /// </param>
+    private void LoadSettingsIntoProperties(AppSettings s, bool formOnly = false)
     {
         SettingLocalEthIp = s.LocalEthIp;
         SettingMulticastGroup = s.MulticastGroup;
@@ -297,7 +302,10 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         SettingWarnOnMissingValue = s.WarnOnMissingValue;
 
         foreach (var limit in AlertLimits)
-            limit.Load(s.AlertLimits.TryGetValue(limit.Key, out var l) ? l : null);
+        {
+            if (formOnly) limit.ClearText();
+            else limit.Load(s.AlertLimits.TryGetValue(limit.Key, out var l) ? l : null);
+        }
 
         _loadingPins = true;
         foreach (var graph in Graphs) graph.IsPinned = s.PinnedGraphs.Contains(graph.Key);
@@ -472,7 +480,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         var def = new AppSettings();
         // Keep the pins: resetting the network / filter settings shouldn't unpin your graphs.
         def.PinnedGraphs = Graphs.Where(g => g.IsPinned).Select(g => g.Key).ToList();
-        LoadSettingsIntoProperties(def);
+        LoadSettingsIntoProperties(def, formOnly: true);
         SettingsSaved = false;
         SettingsStatusMessage = "Settings reset to defaults. Click 'Save & Apply Settings' to persist.";
     }

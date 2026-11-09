@@ -8,7 +8,7 @@
         mc:Ignorable="d" d:DesignWidth="1440" d:DesignHeight="900"
         x:Class="CanSatGSUI.Views.MainWindow"
         x:DataType="vm:MainViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/cantauri.ico"
         Title="CanTauri · CanSat Ground Station"
         Width="1440" Height="900"
         MinWidth="1100" MinHeight="700"
@@ -419,18 +419,8 @@
         <!-- ===================== Header ===================== -->
         <Border Grid.Row="0" Classes="panel" Height="64" Padding="11,0,8,0">
             <Grid ColumnDefinitions="Auto, Auto, Auto, Auto, Auto, Auto, Auto, *, Auto">
-                <!-- Roundel: red rim, ink sky, brass star -->
-                <Panel Width="42" Height="42" VerticalAlignment="Center">
-                    <Ellipse Fill="{StaticResource Ct.MissionRedBrush}" />
-                    <Ellipse Margin="3" Fill="{StaticResource Ct.InkBrush}" />
-                    <Path Data="{StaticResource StarGeometry}" Fill="{StaticResource Ct.DataBrush}"
-                          Width="14" Height="14" Stretch="Uniform" />
-                </Panel>
-
-                <StackPanel Grid.Column="1" VerticalAlignment="Center" Margin="14,0,22,0">
-                    <TextBlock Classes="display" FontSize="20" LetterSpacing="3" Text="CANTAURI" />
-                    <TextBlock Classes="lbl" FontSize="10" Margin="0,3,0,0" Text="CANSAT GROUND STATION" />
-                </StackPanel>
+                <!-- CanTauri roundel + wordmark (official artwork, see CanTauriMark.axaml) -->
+                <views:CanTauriMark Grid.Column="0" Grid.ColumnSpan="2" Margin="0,0,22,0" />
 
                 <Rectangle Grid.Column="2" Width="1" Margin="0,13" Fill="{StaticResource Ct.LineBrush}" />
 
