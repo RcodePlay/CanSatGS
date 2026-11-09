@@ -2,32 +2,66 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="CanSatGSUI.App"
              xmlns:local="using:CanSatGSUI"
-             RequestedThemeVariant="Default">
+             RequestedThemeVariant="Dark">
 
     <Application.DataTemplates>
         <local:ViewLocator />
     </Application.DataTemplates>
 
     <Application.Styles>
-             <FluentTheme/>
+        <FluentTheme />
     </Application.Styles>
 
     <Application.Resources>
         <ResourceDictionary>
-            <ResourceDictionary.ThemeDictionaries>
-                <ResourceDictionary x:Key="Light">
-                    <SolidColorBrush x:Key="App.BackgroundBrush" Color="#FFF0B3"/>
-                    <SolidColorBrush x:Key="App.ForegroundBrush" Color="#FFF0B3"/>
-                    <SolidColorBrush x:Key="App.AccentBrush" Color="#241A2C"/>
-                    <SolidColorBrush x:Key="App.CardBackground" Color="#5A3B6D"/>
-                </ResourceDictionary>
-                <ResourceDictionary x:Key="Dark">
-                    <SolidColorBrush x:Key="App.BackgroundBrush" Color="#0B0A0F"/>
-                    <SolidColorBrush x:Key="App.ForegroundBrush" Color="#FFF0B3"/>
-                    <SolidColorBrush x:Key="App.AccentBrush" Color="#5A3B6D"/>
-                    <SolidColorBrush x:Key="App.CardBackground" Color="#241A2C"/>
-                </ResourceDictionary>
-            </ResourceDictionary.ThemeDictionaries>
+            <!-- CanTauri "Console" theme (see the CanTauri design system). The app is always dark. -->
+            <Color x:Key="Ct.Surface">#100F0E</Color>
+            <Color x:Key="Ct.Panel">#181614</Color>
+            <Color x:Key="Ct.Line">#2A2622</Color>
+            <Color x:Key="Ct.Field">#3A352F</Color>
+            <Color x:Key="Ct.Text">#F2EDE3</Color>
+            <Color x:Key="Ct.Muted">#A9A299</Color>
+            <Color x:Key="Ct.Dim">#8C857C</Color>
+            <Color x:Key="Ct.Accent">#E05A60</Color>
+            <Color x:Key="Ct.Data">#E3B04B</Color>
+            <Color x:Key="Ct.Positive">#4FB286</Color>
+            <Color x:Key="Ct.Paper">#EFE9DC</Color>
+            <Color x:Key="Ct.Ink">#171513</Color>
+            <Color x:Key="Ct.InkMuted">#5A544C</Color>
+            <Color x:Key="Ct.MissionRed">#C1272D</Color>
+
+            <SolidColorBrush x:Key="Ct.SurfaceBrush" Color="{StaticResource Ct.Surface}" />
+            <SolidColorBrush x:Key="Ct.PanelBrush" Color="{StaticResource Ct.Panel}" />
+            <SolidColorBrush x:Key="Ct.LineBrush" Color="{StaticResource Ct.Line}" />
+            <SolidColorBrush x:Key="Ct.FieldBrush" Color="{StaticResource Ct.Field}" />
+            <SolidColorBrush x:Key="Ct.TextBrush" Color="{StaticResource Ct.Text}" />
+            <SolidColorBrush x:Key="Ct.MutedBrush" Color="{StaticResource Ct.Muted}" />
+            <SolidColorBrush x:Key="Ct.DimBrush" Color="{StaticResource Ct.Dim}" />
+            <SolidColorBrush x:Key="Ct.AccentBrush" Color="{StaticResource Ct.Accent}" />
+            <SolidColorBrush x:Key="Ct.DataBrush" Color="{StaticResource Ct.Data}" />
+            <SolidColorBrush x:Key="Ct.PositiveBrush" Color="{StaticResource Ct.Positive}" />
+            <SolidColorBrush x:Key="Ct.PaperBrush" Color="{StaticResource Ct.Paper}" />
+            <SolidColorBrush x:Key="Ct.InkBrush" Color="{StaticResource Ct.Ink}" />
+            <SolidColorBrush x:Key="Ct.InkMutedBrush" Color="{StaticResource Ct.InkMuted}" />
+            <SolidColorBrush x:Key="Ct.InkLineBrush" Color="#24171513" />
+            <SolidColorBrush x:Key="Ct.MissionRedBrush" Color="{StaticResource Ct.MissionRed}" />
+            <SolidColorBrush x:Key="Ct.PositiveLineBrush" Color="#2C4A3B" />
+
+            <!-- Kept for anything still using the old names. -->
+            <SolidColorBrush x:Key="App.BackgroundBrush" Color="{StaticResource Ct.Surface}" />
+            <SolidColorBrush x:Key="App.ForegroundBrush" Color="{StaticResource Ct.Text}" />
+            <SolidColorBrush x:Key="App.AccentBrush" Color="{StaticResource Ct.Line}" />
+            <SolidColorBrush x:Key="App.CardBackground" Color="{StaticResource Ct.Panel}" />
+
+            <!-- Fonts: Fraunces speaks, Jost explains, Space Mono measures. Embedded in Assets/Fonts. -->
+            <FontFamily x:Key="Ct.DisplayFont">avares://CanSatGSUI/Assets/Fonts#Fraunces</FontFamily>
+            <FontFamily x:Key="Ct.TextFont">avares://CanSatGSUI/Assets/Fonts#Jost</FontFamily>
+            <FontFamily x:Key="Ct.MonoFont">avares://CanSatGSUI/Assets/Fonts#Space Mono</FontFamily>
+            <!-- Fluent controls (TextBox, CheckBox, TabItem...) use this one. -->
+            <FontFamily x:Key="ContentControlThemeFontFamily">avares://CanSatGSUI/Assets/Fonts#Jost</FontFamily>
+
+            <!-- The CanTauri four-point star (pin button, Pinned view). -->
+            <StreamGeometry x:Key="StarGeometry">M 8 0 Q 10.08 5.92 16 8 Q 10.08 10.08 8 16 Q 5.92 10.08 0 8 Q 5.92 5.92 8 0 Z</StreamGeometry>
         </ResourceDictionary>
     </Application.Resources>
 </Application>
