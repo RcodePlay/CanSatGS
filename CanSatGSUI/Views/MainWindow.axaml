@@ -452,6 +452,9 @@
                 </Border>
 
                 <StackPanel Grid.Column="8" Orientation="Horizontal" Spacing="4">
+                    <Button Classes="quiet" Content="Replay CSV"
+                            Command="{Binding ReplayCsvCommand}"
+                            ToolTip.Tip="Pick a mission CSV and play it as live telemetry" />
                     <Button Classes="tab" Classes.on="{Binding IsDashboardTab}" Content="Dashboard"
                             Command="{Binding ShowTabCommand}" CommandParameter="0" />
                     <Button Classes="tab" Classes.on="{Binding IsGraphsTab}" Content="Graphs"

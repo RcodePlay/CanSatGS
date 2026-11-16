@@ -4,6 +4,7 @@
     <option name="projectPerEditor">
       <map>
         <entry key="CanSatGSUI/App.axaml" value="CanSatGSUI/CanSatGSUI.csproj" />
+        <entry key="CanSatGSUI/Views/DashboardGraphsView.axaml" value="CanSatGSUI/CanSatGSUI.csproj" />
         <entry key="CanSatGSUI/Views/MainWindow.axaml" value="CanSatGSUI/CanSatGSUI.csproj" />
       </map>
     </option>

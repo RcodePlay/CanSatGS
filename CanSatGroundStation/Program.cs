@@ -70,35 +70,40 @@ public readonly record struct ProcessedPacket
     {
         packet = default;
         var f = raw.Trim().Split(',');
-        if (f.Length < FieldCount) return false;
+        if (f.Length == 0) return false;
 
         var inv = CultureInfo.InvariantCulture;
         const NumberStyles ints = NumberStyles.Integer;
         const NumberStyles floats = NumberStyles.Float;
 
-        if (!int.TryParse(f[0], ints, inv, out var timeSinceStart) ||
-            !int.TryParse(f[1], ints, inv, out var gpsTime) ||
-            !int.TryParse(f[2], ints, inv, out var gpsFix) ||
-            !int.TryParse(f[3], ints, inv, out var sats) ||
-            !double.TryParse(f[4], floats, inv, out var lat) ||
-            !double.TryParse(f[5], floats, inv, out var lon) ||
-            !double.TryParse(f[6], floats, inv, out var gpsAlt) ||
-            !float.TryParse(f[7], floats, inv, out var baroAlt) ||
-            !float.TryParse(f[8], floats, inv, out var press) ||
-            !float.TryParse(f[9], floats, inv, out var temp) ||
-            !float.TryParse(f[10], floats, inv, out var hum) ||
-            !float.TryParse(f[11], floats, inv, out var ax) ||
-            !float.TryParse(f[12], floats, inv, out var ay) ||
-            !float.TryParse(f[13], floats, inv, out var az) ||
-            !float.TryParse(f[14], floats, inv, out var omegax) ||
-            !float.TryParse(f[15], floats, inv, out var omegay) ||
-            !float.TryParse(f[16], floats, inv, out var omegaz) ||
-            !float.TryParse(f[17], floats, inv, out var mx) ||
-            !float.TryParse(f[18], floats, inv, out var my) ||
-            !float.TryParse(f[19], floats, inv, out var mz) ||
-            !float.TryParse(f[20], floats, inv, out var theta) ||
-            !float.TryParse(f[21], floats, inv, out var rssi) ||
-            !float.TryParse(f[22], floats, inv, out var snr))
+        // Logged CSV lines prefix an ISO-8601 system timestamp; mission dumps may omit it.
+        var offset = f.Length >= FieldCount + 1 && !int.TryParse(f[0], ints, inv, out _) ? 1 : 0;
+
+        if (f.Length - offset < FieldCount) return false;
+
+        if (!int.TryParse(f[offset + 0], ints, inv, out var timeSinceStart) ||
+            !int.TryParse(f[offset + 1], ints, inv, out var gpsTime) ||
+            !int.TryParse(f[offset + 2], ints, inv, out var gpsFix) ||
+            !int.TryParse(f[offset + 3], ints, inv, out var sats) ||
+            !double.TryParse(f[offset + 4], floats, inv, out var lat) ||
+            !double.TryParse(f[offset + 5], floats, inv, out var lon) ||
+            !double.TryParse(f[offset + 6], floats, inv, out var gpsAlt) ||
+            !float.TryParse(f[offset + 7], floats, inv, out var baroAlt) ||
+            !float.TryParse(f[offset + 8], floats, inv, out var press) ||
+            !float.TryParse(f[offset + 9], floats, inv, out var temp) ||
+            !float.TryParse(f[offset + 10], floats, inv, out var hum) ||
+            !float.TryParse(f[offset + 11], floats, inv, out var ax) ||
+            !float.TryParse(f[offset + 12], floats, inv, out var ay) ||
+            !float.TryParse(f[offset + 13], floats, inv, out var az) ||
+            !float.TryParse(f[offset + 14], floats, inv, out var omegax) ||
+            !float.TryParse(f[offset + 15], floats, inv, out var omegay) ||
+            !float.TryParse(f[offset + 16], floats, inv, out var omegaz) ||
+            !float.TryParse(f[offset + 17], floats, inv, out var mx) ||
+            !float.TryParse(f[offset + 18], floats, inv, out var my) ||
+            !float.TryParse(f[offset + 19], floats, inv, out var mz) ||
+            !float.TryParse(f[offset + 20], floats, inv, out var theta) ||
+            !float.TryParse(f[offset + 21], floats, inv, out var rssi) ||
+            !float.TryParse(f[offset + 22], floats, inv, out var snr))
             return false;
 
         packet = new ProcessedPacket
@@ -182,7 +187,7 @@ public sealed class TelemetryEngine(
     IAppLogger? logger = null)
     : IDisposable
 {
-    private const string Header = "SystemTimestamp,TimeSinceStart,GPSTimeUTC,GPSFix,SatelliteCount,Latitude,Longitude,GPSAltitude,AltitudeBarometer,Temperature,Pressure,Humidity,AccelerationX,AccelerationY,AccelerationZ,RSSI,SNR";
+    public const string CsvHeader = "SystemTimestamp,TimeSinceStart,GPSTimeUTC,GPSFix,SatelliteCount,Latitude,Longitude,GPSAltitude,AltitudeBarometer,Pressure,Temperature,Humidity,AccelerationX,AccelerationY,AccelerationZ,OmegaX,OmegaY,OmegaZ,MagneticFieldX,MagneticFieldY,MagneticFieldZ,Theta,RSSI,SNR";
 
     private readonly IAppLogger _log = logger ?? NullAppLogger.Instance;
     private readonly IPAddress _localIp = IPAddress.Parse(localIp);
@@ -326,7 +331,7 @@ public sealed class TelemetryEngine(
                     FileShare.Read, bufferSize: 64 * 1024);
 
                 if (fs.Length == 0)
-                    fs.Write(Encoding.UTF8.GetBytes(Header + "\n"));
+                    fs.Write(Encoding.UTF8.GetBytes(CsvHeader + "\n"));
 
                 while (true)
                 {
@@ -388,6 +393,7 @@ public sealed class CanSatGroundStation(
 
     private readonly IAppLogger _log = logger ?? NullAppLogger.Instance;
     private Kalman3D? _kalman;
+    private int? _lastKalmanTime;
     private readonly CancellationTokenSource _cts = new();
     private Task? _processing;
     private int _disposed;
@@ -417,6 +423,46 @@ public sealed class CanSatGroundStation(
 
     /// <summary>Completes when the live feed has ended (engine stopped) or the station was disposed.</summary>
     public Task Completion => _processing ?? Task.CompletedTask;
+
+    /// <summary>
+    /// Replays a mission CSV (with or without <c>SystemTimestamp</c> column / header).
+    /// When <paramref name="playbackSpeed"/> is 0, packets are processed as fast as possible.
+    /// Otherwise, delays follow <see cref="ProcessedPacket.TimeSinceStart"/> scaled by that speed.
+    /// </summary>
+    public async Task<int> ReplayFromCsvAsync(string csvPath, double playbackSpeed = 0, CancellationToken ct = default)
+    {
+        ObjectDisposedException.ThrowIf(_disposed != 0, this);
+        ArgumentException.ThrowIfNullOrWhiteSpace(csvPath);
+        if (!File.Exists(csvPath))
+            throw new FileNotFoundException("Mission CSV not found.", csvPath);
+
+        _kalman = null;
+        _lastKalmanTime = null;
+        LastPacket = null;
+        LastForecast = null;
+
+        var count = 0;
+        int? lastMissionTime = null;
+        foreach (var line in File.ReadLines(csvPath))
+        {
+            ct.ThrowIfCancellationRequested();
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            if (!ProcessedPacket.TryParse(line, out var telemetry)) continue;
+
+            if (playbackSpeed > 0 && lastMissionTime is { } prev)
+            {
+                var delayMs = (telemetry.TimeSinceStart - prev) * 1000.0 / playbackSpeed;
+                if (delayMs > 0)
+                    await Task.Delay(TimeSpan.FromMilliseconds(delayMs), ct).ConfigureAwait(false);
+            }
+
+            lastMissionTime = telemetry.TimeSinceStart;
+            Handle(new TelemetryPacket(DateTime.UtcNow, Encoding.UTF8.GetBytes(line)));
+            count++;
+        }
+
+        return count;
+    }
 
     private async Task ProcessLoopAsync(ChannelReader<TelemetryPacket> live, CancellationToken ct)
     {
@@ -461,8 +507,14 @@ public sealed class CanSatGroundStation(
         }
         else
         {
+            // Advance the motion model by the actual gap (TimeSinceStart is seconds).
+            // A non-positive interval (duplicate / out-of-order) falls back to DeltaT.
+            var dt = telemetry.TimeSinceStart - _lastKalmanTime!.Value;
+            _kalman.Predict(dt > 0 ? dt : deltaT);
             _kalman.Update(measurement);
         }
+
+        _lastKalmanTime = telemetry.TimeSinceStart;
         var predicted = _kalman.Forecast(stepsToPredict, deltaT);
 
         var forecast = new TrajectoryForecast(telemetry, measurement, predicted);

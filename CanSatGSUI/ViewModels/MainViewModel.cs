@@ -2,7 +2,13 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.IO;
 using System.Linq;
+using System.Threading;
+using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
+using Avalonia.Platform.Storage;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -28,6 +34,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     private CanSatGroundStation.CanSatGroundStation? _groundStation;
     private readonly IAppLogger _logger;
     private bool _disposed;
+    private CancellationTokenSource? _replayCts;
 
     // Pins are saved to settings.json only in the real app, never by the preview / test constructor.
     private readonly bool _persistPins;
@@ -51,6 +58,7 @@ public partial class MainViewModel : ViewModelBase, IDisposable
 
     // Status and Metadata
     [ObservableProperty] public partial bool IsRunning { get; private set; }
+    [ObservableProperty] public partial bool IsReplaying { get; private set; }
     [ObservableProperty] public partial bool HasData { get; private set; }
     [ObservableProperty] public partial int TotalPacketsReceived { get; set; }
     [ObservableProperty] public partial string ConnectionStatus { get; set; } = "Ready";
@@ -531,6 +539,76 @@ public partial class MainViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private bool CanReplayCsv() => !_disposed && _groundStation is not null && !IsReplaying;
+
+    partial void OnIsReplayingChanged(bool value) => ReplayCsvCommand.NotifyCanExecuteChanged();
+
+    /// <summary>
+    /// Opens a CSV file picker and replays the mission log through the same packet pipeline as live telemetry.
+    /// Playback follows <see cref="ProcessedPacket.TimeSinceStart"/> at 1× speed.
+    /// </summary>
+    [RelayCommand(CanExecute = nameof(CanReplayCsv))]
+    public async Task ReplayCsvAsync()
+    {
+        if (_groundStation is null || _disposed) return;
+
+        var path = await PickCsvPathAsync().ConfigureAwait(true);
+        if (string.IsNullOrWhiteSpace(path)) return;
+
+        _replayCts?.Cancel();
+        _replayCts?.Dispose();
+        _replayCts = new CancellationTokenSource();
+        var ct = _replayCts.Token;
+
+        IsReplaying = true;
+        History.Clear();
+        PacketHistory.Clear();
+        Lines.Clear();
+        PredictedTrajectory.Clear();
+        HasTrajectoryForecast = false;
+        TotalPacketsReceived = 0;
+        ConnectionStatus = $"Replaying {Path.GetFileName(path)}…";
+
+        try
+        {
+            var count = await _groundStation.ReplayFromCsvAsync(path, playbackSpeed: 1, ct).ConfigureAwait(true);
+            if (!ct.IsCancellationRequested)
+                ConnectionStatus = $"Replay finished ({count} packets from {Path.GetFileName(path)})";
+        }
+        catch (OperationCanceledException)
+        {
+            ConnectionStatus = "Replay cancelled";
+        }
+        catch (Exception ex)
+        {
+            _logger.Log(LogLevel.Error, "CSV replay failed", ex);
+            ConnectionStatus = $"Replay error: {ex.Message}";
+        }
+        finally
+        {
+            IsReplaying = false;
+        }
+    }
+
+    private static async Task<string?> PickCsvPathAsync()
+    {
+        var window = (Application.Current?.ApplicationLifetime as IClassicDesktopStyleApplicationLifetime)?.MainWindow;
+        if (window is null) return null;
+
+        var files = await window.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+        {
+            Title = "Replay mission CSV",
+            AllowMultiple = false,
+            FileTypeFilter =
+            [
+                new FilePickerFileType("CSV files") { Patterns = ["*.csv"] },
+                new FilePickerFileType("All files") { Patterns = ["*"] }
+            ]
+        }).ConfigureAwait(true);
+
+        return files.Count == 0 ? null : files[0].TryGetLocalPath();
+    }
+
     public void UpdateWithPacket(ProcessedPacket packet)
     {
         var inv = CultureInfo.InvariantCulture;
@@ -797,6 +875,9 @@ public partial class MainViewModel : ViewModelBase, IDisposable
     {
         if (_disposed) return;
         _disposed = true;
+        _replayCts?.Cancel();
+        _replayCts?.Dispose();
+        _replayCts = null;
         _healthTimer?.Stop();
 
         if (_groundStation is not null)
