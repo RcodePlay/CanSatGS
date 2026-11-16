@@ -1,4 +1,5 @@
 using System;
+using System.Globalization;
 using System.IO;
 using System.Text;
 using System.Threading.Tasks;
@@ -43,6 +44,104 @@ public class TelemetryTests
         Assert.Equal(42.5f, packet.Theta, precision: 1);
         Assert.Equal(-68f, packet.RSSI, precision: 0);
         Assert.Equal(10f, packet.SNR, precision: 0);
+    }
+
+    [Fact]
+    public void ProcessedPacket_TryParse_LoggedCsvLineWithSystemTimestamp_Succeeds()
+    {
+        var raw = "2026-11-04T15:07:00.1234567Z,15,123456,1,8,48.2082,16.3738,250.5,248.2,1012.3,22.4,45.0,0.12,-0.05,9.81,0.1,-0.2,0.3,1.1,-1.2,1.3,42.5,-68,10";
+        Assert.True(ProcessedPacket.TryParse(raw, out var packet));
+        Assert.Equal(15, packet.TimeSinceStart);
+        Assert.Equal(48.2082, packet.Latitude, precision: 4);
+        Assert.Equal(-68f, packet.RSSI, precision: 0);
+    }
+
+    [Fact]
+    public void ProcessedPacket_TryParse_HeaderRow_ReturnsFalse()
+    {
+        Assert.False(ProcessedPacket.TryParse(TelemetryEngine.CsvHeader, out _));
+    }
+
+    [Fact]
+    public void ProcessedPacket_TryParse_OfflineMissionCsv_ParsesAllRows()
+    {
+        var path = FindRepoFile("offline-telemetry-test.csv");
+        Assert.True(File.Exists(path), path);
+        var parsed = 0;
+        foreach (var line in File.ReadLines(path))
+        {
+            if (string.IsNullOrWhiteSpace(line)) continue;
+            Assert.True(ProcessedPacket.TryParse(line, out _), line);
+            parsed++;
+        }
+        Assert.Equal(75, parsed);
+    }
+
+    [Fact]
+    public async Task CanSatGroundStation_ReplayFromCsv_ProcessesOfflineMission()
+    {
+        var path = FindRepoFile("offline-telemetry-test.csv");
+        var logFile = $"test_replay_{Guid.NewGuid()}.csv";
+        var engine = new TelemetryEngine("127.0.0.1", "239.255.1.1", 5000, logFile);
+        var station = new global::CanSatGroundStation.CanSatGroundStation(engine, deltaT: 1.0, stepsToPredict: 3);
+        var packets = 0;
+        station.PacketReceived += _ => packets++;
+
+        var count = await station.ReplayFromCsvAsync(path);
+
+        Assert.Equal(75, count);
+        Assert.Equal(75, packets);
+        Assert.NotNull(station.LastPacket);
+        Assert.Equal(74, station.LastPacket!.Value.TimeSinceStart);
+
+        station.Dispose();
+        if (File.Exists(logFile)) File.Delete(logFile);
+    }
+
+    [Fact]
+    public async Task CanSatGroundStation_ReplayFromCsv_ForecastStepsAheadAlongMotion()
+    {
+        var csv = Path.Combine(Path.GetTempPath(), $"kalman_motion_{Guid.NewGuid()}.csv");
+        var logFile = $"test_kalman_{Guid.NewGuid()}.csv";
+        var inv = CultureInfo.InvariantCulture;
+        var sb = new StringBuilder();
+        sb.AppendLine(TelemetryEngine.CsvHeader);
+        for (var t = 0; t < 10; t++)
+        {
+            var lat = (48.0 + t * 0.001).ToString(inv);
+            sb.AppendLine($"{t},123456,1,8,{lat},16.3738,250.0,248.2,1012.3,22.4,45.0,0.12,-0.05,9.81,0.1,-0.2,0.3,1.1,-1.2,1.3,42.5,-68,10");
+        }
+        await File.WriteAllTextAsync(csv, sb.ToString());
+
+        var engine = new TelemetryEngine("127.0.0.1", "239.255.1.1", 5000, logFile);
+        var station = new global::CanSatGroundStation.CanSatGroundStation(engine, deltaT: 1.0, stepsToPredict: 5);
+
+        await station.ReplayFromCsvAsync(csv);
+
+        var forecast = station.LastForecast;
+        Assert.NotNull(forecast);
+        var traj = forecast.PredictedTrajectory;
+        Assert.Equal(5, traj.Count);
+        Assert.True(traj[0][0] > forecast.Measurement[0],
+            $"first forecast {traj[0][0]} should be ahead of GPS {forecast.Measurement[0]}");
+        Assert.True(traj[^1][0] > traj[0][0],
+            $"horizon should keep moving: last {traj[^1][0]} vs first {traj[0][0]}");
+
+        station.Dispose();
+        File.Delete(csv);
+        if (File.Exists(logFile)) File.Delete(logFile);
+    }
+
+    private static string FindRepoFile(string fileName)
+    {
+        var dir = new DirectoryInfo(AppContext.BaseDirectory);
+        while (dir is not null)
+        {
+            var candidate = Path.Combine(dir.FullName, fileName);
+            if (File.Exists(candidate)) return candidate;
+            dir = dir.Parent;
+        }
+        return fileName;
     }
 
     [Fact]

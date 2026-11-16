@@ -26,6 +26,8 @@ The dashboard includes:
 
 The settings tab provides the local Ethernet IP, multicast group, UDP port, telemetry log file, and Kalman filter/forecast parameters. Use **Save & Apply Settings** to persist and apply changes, or **Reset to Defaults** to restore defaults.
 
+Offline replay reads a mission CSV (live logs with a `SystemTimestamp` column, or dumps such as `offline-telemetry-test.csv` with the 23 telemetry fields only). Set the replay path and playback speed (0 = as fast as possible), then use **Replay Mission CSV**.
+
 ## Build, run, and test
 
 Install the .NET 10 SDK, then run these commands from the repository root:
